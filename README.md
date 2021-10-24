@@ -303,7 +303,7 @@ console.log(userPathBuilder({
 
 ### Print tree
 
-Print the representation of routes in tree;
+Print the representation of routes in tree:
 ```js
 const router = new ProstoRouter()
 
