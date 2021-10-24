@@ -62,7 +62,7 @@ const router = new ProstoRouter()
 
 ### Install
 
-`npm install prosto-router`
+`npm install @prostojs/router`
 
 ### Router options
 ```ts
