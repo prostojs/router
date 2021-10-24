@@ -13,6 +13,7 @@ export interface TProstoLookupContext<ParamsType = TProstoParamsType> {
 export type TProstoRouteHandler = (...args: undefined[]) => void
 
 export interface TProstoRoute<HandlerType = TProstoRouteHandler, ParamsType = TProstoParamsType> {
+    method: THttpMethod
     options: TProstoRouteOptions
     path: string
     handlers: HandlerType[]

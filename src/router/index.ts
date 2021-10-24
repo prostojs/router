@@ -1,15 +1,16 @@
 export * from './router.types'
 import { ProstoCache } from '../cache'
 import { ProstoLogger, EProstoLogLevel } from '@prostojs/logger'
-import { TConsoleInterface, dye } from '@prostojs/dye'
+import { TConsoleInterface, dye, TDyeStylist } from '@prostojs/dye'
 import { createParser } from '../parser'
-import { EPathSegmentType, TParsedSegment } from '../parser/p-types'
+import { EPathSegmentType, TParsedSegment, TParsedSegmentParametric } from '../parser/p-types'
 import { safeDecodeURI, safeDecodeURIComponent } from '../utils/decode'
 import { countOfSlashes } from '../utils/strings'
 import { generateFullMatchFunc, generatePathBuilder } from './match-utils'
 import { THttpMethod, TProstoRouteHandler, TProstoRouterMainIndex, TProstoRoute, TProstoRoutsRegistry,
     TProstoParamsType, TProstoRouterPathBuilder,
     TProstoRouterMethodIndex, TProstoLookupResult, TProstoRouterOptions, TProstoRouteOptions } from './router.types'
+import { ProstoTree } from '@prostojs/tree'
 
 const methods: THttpMethod[] = ['GET', 'PUT', 'POST', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
 
@@ -118,6 +119,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             const lengths = segments.map(s => s.type === EPathSegmentType.STATIC ? s.value.length : 0)
             const normalPathCase = this._options.ignoreCase ? segments[0].value.toLowerCase() : segments[0].value
             this.routesRegistry[generalized] = route = {
+                method,
                 options: opts,
                 path: normalPath,
                 handlers: [handler],
@@ -291,6 +293,75 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
 
     public getRoutes() {
         return this.routes
+    }
+
+    public toTree() {
+        const rootStyle = dye('bold')
+        const paramStyle = dye('cyan', 'bold').prefix(':')
+        const regexStyle = dye('cyan', 'dim')
+        const handlerStyle = dye().prefix(dye('bold', 'green-bright')('→ '))
+        const methodStyle = dye('green-bright').prefix('• (').suffix(') ')
+        type TreeData = {
+            label: string
+            stylist?: TDyeStylist
+            methods: THttpMethod[]
+            children: TreeData[]
+        }
+        const data: TreeData = {
+            label: '⁕ Router',
+            stylist: rootStyle,
+            methods: [],
+            children: [],
+        }
+
+        function toChild(d: TreeData, label: string, stylist?: TDyeStylist) {
+            let found = d.children.find(c => c.label === label)
+            if (!found) {
+                found = {
+                    label,
+                    stylist,
+                    methods: [],
+                    children: [],
+                }
+                d.children.push(found)
+            }
+            return found
+        }
+
+        this.routes.sort((a, b) => a.path > b.path ? 1 : -1).forEach(route => {
+            let cur: TreeData = data
+            let last = ''
+            route.segments.forEach(s => {
+                switch (s.type) {
+                    case EPathSegmentType.STATIC:
+                        const parts = s.value.split('/')
+                        last += parts.shift()
+                        for (let i = 0; i < parts.length; i++) {
+                            if (last) {
+                                cur = toChild(cur, last)
+                            }
+                            last = '/' + parts[i]
+                        }
+                        break
+                    case EPathSegmentType.VARIABLE: 
+                    case EPathSegmentType.WILDCARD:
+                        last += `${ paramStyle(s.value) }${ regexStyle(s.regex) }`
+                }
+            })
+            if (last) {
+                cur = toChild(cur, last, handlerStyle)
+                cur.methods.push(route.method)
+            }
+        })
+        new ProstoTree<TreeData>({
+            renderLabel: (node: TreeData, behind: string) => {
+                const styledLabel = node.stylist ? node.stylist(node.label) : node.label
+                if (node.methods.length) {
+                    return styledLabel + '\n' + behind + node.methods.map(m => methodStyle(m)).join('\n' + behind)
+                }
+                return styledLabel
+            },
+        }).print(data)
     }
 }
 

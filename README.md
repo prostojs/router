@@ -301,4 +301,24 @@ console.log(userPathBuilder({
 // /api/user/John
 ```
 
-### To be continued...
+### Print tree
+
+Print the representation of routes in tree;
+```js
+const router = new ProstoRouter()
+
+router.on('GET', '/api/users', () => {})
+router.on('GET', '/api/user/:id', () => {})
+router.on('GET', '/api/dealers', () => {})
+router.on('GET', '/api/dealer/:id', () => {})
+router.on('GET', '/api/assets', () => {})
+router.on('GET', '/api/assets/:type/:id', () => {})
+router.on('GET', '/api/lead/a:key1-p:key2', () => {})
+router.on('GET', 'static/*', () => {})
+router.on('GET', 'static/*/styles/:filename.css', () => {})
+router.on('GET', '*', () => {})
+
+router.toTree()
+```
+
+<img src="./docs/router-tree.png" style="max-width: 650px">
