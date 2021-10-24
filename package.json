@@ -1,6 +1,6 @@
 {
   "name": "@prostojs/router",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Super Fast and Robust URI-router for NodeJS",
   "main": "index.js",
   "module": "dist/router.esm-bundler.js",
