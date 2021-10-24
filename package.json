@@ -44,9 +44,9 @@
   "author": "Artem Maltsev",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/prostojs/dye/issues"
+    "url": "https://github.com/prostojs/router/issues"
   },
-  "homepage": "https://github.com/prostojs/dye#readme",
+  "homepage": "https://github.com/prostojs/router#readme",
   "devDependencies": {
     "@microsoft/api-extractor": "^7.15.1",
     "@rollup/plugin-commonjs": "^21.0.0",
