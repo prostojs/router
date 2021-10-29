@@ -11,7 +11,7 @@ const bin = name => path.resolve(__dirname, '../node_modules/.bin/' + name)
 
 const step = dye('cyan').prefix('\n').attachConsole()
 const error = dye('red-bright').attachConsole('error')
-const good = dye('green', 'bold').prefix('\n✓').attachConsole()
+const good = dye('green', 'bold').prefix('\n✓ ').attachConsole()
 const info = dye('green', 'dim').attachConsole('info')
 
 const branch = execa.sync('git', ['branch', '--show-current']).stdout
@@ -128,4 +128,3 @@ async function main() {
     
     good('All done!')
 }
-
