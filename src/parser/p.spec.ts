@@ -1,15 +1,7 @@
 import { createParser } from '.'
 import { EPathSegmentType, TParsedSegmentParametric } from './p-types'
 
-const c = {
-    log: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-}
-
-const parsePath = createParser(c)
+const parsePath = createParser()
 
 describe('path-parser', () => {
     it('must parse simple STATIC path', () => {

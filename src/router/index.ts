@@ -43,7 +43,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             }) as TConsoleInterface,
         }
         this.logger = this._options.logger 
-        this.parsePath = createParser(this.logger)
+        this.parsePath = createParser()
         this.logger.info('ProstoRouter initialized')
         const cacheOpts = {
             limit: _options?.cacheLimit || 0,
