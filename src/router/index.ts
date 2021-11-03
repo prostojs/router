@@ -2,8 +2,8 @@ export * from './router.types'
 import { ProstoCache } from '../cache'
 import { ProstoLogger, EProstoLogLevel } from '@prostojs/logger'
 import { TConsoleInterface, dye, TDyeStylist } from '@prostojs/dye'
-import { createParser } from '../parser'
-import { EPathSegmentType, TParsedSegment } from '../parser/p-types'
+import { parsePath } from '../parser'
+import { EPathSegmentType } from '../parser/p-types'
 import { safeDecodeURI, safeDecodeURIComponent } from '../utils/decode'
 import { countOfSlashes } from '../utils/strings'
 import { generateFullMatchFunc, generatePathBuilder } from './match-utils'
@@ -28,8 +28,6 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
 
     protected cache: TProstoRouterCache
 
-    protected parsePath: (expr: string) => TParsedSegment[]
-
     protected readonly logger: TConsoleInterface
 
     constructor(_options?: Partial<TProstoRouterOptions>) {
@@ -43,7 +41,6 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             }) as TConsoleInterface,
         }
         this.logger = this._options.logger 
-        this.parsePath = createParser()
         this.logger.info('ProstoRouter initialized')
         const cacheOpts = {
             limit: _options?.cacheLimit || 0,
@@ -77,7 +74,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         const opts = this.mergeOptions(options)
         const normalPath = ('/' + path).replace(/^\/\//, '/').replace(/\/$/, '')
         const { root } = this
-        const segments = this.parsePath(normalPath)
+        const segments = parsePath(normalPath)
         if (!root[method]) {
             root[method] = {
                 statics: {},

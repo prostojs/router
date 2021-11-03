@@ -1,7 +1,5 @@
-import { createParser } from '.'
+import { parsePath } from '.'
 import { EPathSegmentType, TParsedSegmentParametric } from './p-types'
-
-const parsePath = createParser()
 
 describe('path-parser', () => {
     it('must parse simple STATIC path', () => {

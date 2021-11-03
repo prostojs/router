@@ -33,10 +33,10 @@
     ]
   },
   "dependencies": {
-    "@prostojs/dye": "^0.2.0",
+    "@prostojs/dye": "^0.3.0",
     "@prostojs/logger": "^0.2.0",
-    "@prostojs/parser": "^0.3.1",
-    "@prostojs/tree": "^0.2.0"
+    "@prostojs/parser": "^0.4.9",
+    "@prostojs/tree": "^0.2.2"
   },
   "gitHooks": {
     "commit-msg": "node scripts/verifyCommit.js"
