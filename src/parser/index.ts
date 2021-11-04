@@ -1,9 +1,7 @@
 import { 
-    GenericNode,
-    GenericRecursiveNode,
-    GenericRootNode,
+    BasicNode,
     ProstoParserNodeContext,
-    TGenericNodeOptions,
+    TBasicNodeOptions,
     TProstoParserHoistOptions,
 } from '@prostojs/parser'
 
@@ -15,11 +13,11 @@ import {
 
 export function parsePath(expr: string): TParsedSegment[] {
     const parsed = parser.parse(expr)
-    return parsed.content.map(c => (c as ProstoParserNodeContext<TParsedSegment>).getCustomData()) as TParsedSegment[]
+    return parsed.content.map(c => (c as ProstoParserNodeContext<TParsedSegment>).getCustomData())
 }
 
-class ParametricNodeWithRegex extends GenericNode<TParsedSegmentParametric> {
-    constructor(options: TGenericNodeOptions<TParsedSegmentParametric>, rgNode: GenericNode) {
+class ParametricNodeWithRegex extends BasicNode<TParsedSegmentParametric> {
+    constructor(options: TBasicNodeOptions<TParsedSegmentParametric>, rgNode: BasicNode) {
         super(options)
 
         const hoistRegex: TProstoParserHoistOptions<TParsedSegmentParametric> = {
@@ -28,7 +26,7 @@ class ParametricNodeWithRegex extends GenericNode<TParsedSegmentParametric> {
             onConflict: 'overwrite',
             removeChildFromContent: true,
             deep: 1,
-            map: ({ content }) => content.join('').replace(/^\(\^/, '(').replace(/\$\)$/, ')'),
+            mapRule: ({ content }) => content.join('').replace(/^\(\^/, '(').replace(/\$\)$/, ')'),
         }
 
         this.mapContent('value', content => content.shift())
@@ -39,10 +37,11 @@ class ParametricNodeWithRegex extends GenericNode<TParsedSegmentParametric> {
     }
 }
 
-const regexNode = new GenericRecursiveNode<TParsedSegment>({
+const regexNode = new BasicNode<TParsedSegment>({
     label: 'RegEx',
     tokens: ['(', ')'],
     backSlash: 'ignore-ignore',
+    recursive: true,
 }).onMatch(({ parserContext, context }) => {
     if (parserContext.fromStack()?.node === context.node) {
         if (!parserContext.here.startsWith('?:')) {
@@ -54,24 +53,23 @@ const regexNode = new GenericRecursiveNode<TParsedSegment>({
 const paramNode = new ParametricNodeWithRegex({
     label: 'Parameter',
     tokens: [':', /[\/\-]/],
-    tokenOptions: 'omit-eject',
+    tokenOE: 'omit-eject',
     backSlash: 'ignore-',
 }, regexNode).initCustomData(() => ({ type: EPathSegmentType.VARIABLE, value: '', regex: '([^\\/]*)' }))
 
 const wildcardNode = new ParametricNodeWithRegex({
     label: 'Wildcard',
     tokens: ['*', /[^*\()]/],
-    tokenOptions: '-eject',
+    tokenOE: '-eject',
 }, regexNode).initCustomData(() => ({ type: EPathSegmentType.WILDCARD, value: '*', regex: '(.*)' }))
 
-const staticNode = new GenericNode<TParsedSegment>({
+const staticNode = new BasicNode<TParsedSegment>({
     label: 'Static',
     tokens: [/[^:\*]/, /[:\*]/],
     backSlash: '-ignore',
-    tokenOptions: '-eject',
+    tokenOE: '-eject',
 }).initCustomData(() => ({ type: EPathSegmentType.STATIC, value: '' }))
     .mapContent('value', content => content.splice(0).join('').replace(/\\:/g, ':'))
     .popsAtEOFSource(true)
 
-const parser = new GenericRootNode()
-    .addRecognizes(staticNode, paramNode, wildcardNode)
+const parser = new BasicNode({}).addRecognizes(staticNode, paramNode, wildcardNode)

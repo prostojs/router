@@ -35,7 +35,7 @@
   "dependencies": {
     "@prostojs/dye": "^0.3.0",
     "@prostojs/logger": "^0.2.0",
-    "@prostojs/parser": "^0.4.9",
+    "@prostojs/parser": "^0.5.0",
     "@prostojs/tree": "^0.2.2"
   },
   "gitHooks": {
