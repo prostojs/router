@@ -1,3 +1,7 @@
+## [0.0.6](https://github.com/prostojs/router/compare/v0.0.5...v0.0.6) (2021-11-04)
+
+
+
 ## [0.0.5](https://github.com/prostojs/router/compare/v0.0.4...v0.0.5) (2021-10-31)
 
 
