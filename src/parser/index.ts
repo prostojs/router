@@ -12,8 +12,7 @@ import {
 } from '..'
 
 export function parsePath(expr: string): TParsedSegment[] {
-    const parsed = parser.parse(expr)
-    return parsed.content.map(c => (c as ProstoParserNodeContext<TParsedSegment>).getCustomData())
+    return parser.parse(expr).extractCustomDataTree<TParsedSegment[]>()
 }
 
 class ParametricNodeWithRegex extends BasicNode<TParsedSegmentParametric> {
