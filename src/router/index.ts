@@ -1,5 +1,5 @@
 export * from './router.types'
-import { ProstoCache } from '../cache'
+import { ProstoCache } from '@prostojs/cache'
 import { ProstoLogger, EProstoLogLevel } from '@prostojs/logger'
 import { TConsoleInterface, dye, TDyeStylist } from '@prostojs/dye'
 import { parsePath } from '../parser'
