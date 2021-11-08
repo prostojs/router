@@ -1,6 +1,5 @@
 import { 
     BasicNode,
-    ProstoParserNodeContext,
     TBasicNodeOptions,
     TProstoParserHoistOptions,
 } from '@prostojs/parser'
