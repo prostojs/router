@@ -1,3 +1,12 @@
+## [0.0.8](https://github.com/prostojs/router/compare/v0.0.7...v0.0.8) (2021-11-20)
+
+
+### Bug Fixes
+
+* add export for decode and regex ([dd9b4cd](https://github.com/prostojs/router/commit/dd9b4cdfa69f16bfc3c9184d17f1661a52ab7921))
+
+
+
 ## [0.0.7](https://github.com/prostojs/router/compare/v0.0.6...v0.0.7) (2021-11-08)
 
 
