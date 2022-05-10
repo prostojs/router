@@ -1,3 +1,13 @@
+## [0.0.9](https://github.com/prostojs/router/compare/v0.0.8...v0.0.9) (2022-05-10)
+
+
+### Bug Fixes
+
+* avoid double decoding on route params ([e5e4694](https://github.com/prostojs/router/commit/e5e46940b0af2846a5d4464b243be7381fa4fe4d))
+* fix decoding/encoding logic ([910c13b](https://github.com/prostojs/router/commit/910c13b037c753813dca04eac8007ef6ab983902))
+
+
+
 ## [0.0.8](https://github.com/prostojs/router/compare/v0.0.7...v0.0.8) (2021-11-20)
 
 
