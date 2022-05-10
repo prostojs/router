@@ -321,23 +321,25 @@ describe('ProstoRouter decode url components (find-my-way/issues/234)', () => {
         const handler = () => {}
         router.get('/:param', handler)
         
-        expect((router.find('GET', '/foo%23bar') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: 'foo%23bar' })
+        expect((router.find('GET', '/foo%23bar') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: 'foo#bar' })
         expect((router.find('GET', '/%F0%9F%8D%8C') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: '🍌' })
         expect((router.find('GET', '/%F0%9F%8D%8C-foo') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: '🍌-foo' })
-        expect((router.find('GET', '/%F0%9F%8D%8C-foo%23bar') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: '🍌-foo%23bar' })
+        expect((router.find('GET', '/%F0%9F%8D%8C-foo%23bar') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: '🍌-foo#bar' })
     })
 })
 
 describe('ProstoRouter decode url components (find-my-way/pull/253)', () => {
     const singleEncode = (str: string) => encodeURIComponent(str)
-    const doubleEncode = (str: string) => singleEncode(singleEncode(str))
+    const doubleEncode = (str: string) => encodeURIComponent(encodeURIComponent(str))
 
     it('must parse /🍌/:id path', () => {
         const router = new ProstoRouter()
         const handler = () => {}
         router.get('/🍌/:id', handler)
+
+        console.log(router.toTree())
                 
-        expect((router.find('GET', decodeURI(`/%F0%9F%8D%8C/${singleEncode('#')}`)) as TProstoLookupResult<typeof handler>).ctx.params['id']).toEqual(singleEncode('#')) // equal
-        expect((router.find('GET', decodeURI(`/%F0%9F%8D%8C/${doubleEncode('#')}`)) as TProstoLookupResult<typeof handler>).ctx.params['id']).toEqual(singleEncode('#')) // equal
+        expect((router.find('GET', `/%F0%9F%8D%8C/${singleEncode('#')}`) as TProstoLookupResult<typeof handler>).ctx.params['id']).toEqual('#') // equal
+        expect((router.find('GET', `/%F0%9F%8D%8C/${doubleEncode('#')}`) as TProstoLookupResult<typeof handler>).ctx.params['id']).toEqual(singleEncode('#')) // equal
     })
 })

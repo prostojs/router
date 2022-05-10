@@ -162,14 +162,15 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
 
     protected sanitizePath(path: string) {
         const end = path.indexOf('?')
-        let normalPath = end >= 0 ? path.slice(0, end) : path
-        if (this._options.ignoreTrailingSlash && normalPath[normalPath.length - 1] === '/') {
-            normalPath = normalPath.slice(0, normalPath.length - 1)
+        let slicedPath = end >= 0 ? path.slice(0, end) : path
+        if (this._options.ignoreTrailingSlash && slicedPath[slicedPath.length - 1] === '/') {
+            slicedPath = slicedPath.slice(0, slicedPath.length - 1)
         }
-        normalPath = safeDecodeURI(normalPath)
+        const normalPath = safeDecodeURI(slicedPath)
         return {
             normalPath,
             normalPathWithCase: this._options.ignoreCase ? normalPath.toLowerCase() : normalPath,
+            slicedPath,
         }
     }
 
@@ -181,7 +182,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             const cached = this.cache[method].get(path) as TProstoLookupResult<HandlerType>
             if (cached) return cached
         }
-        const { normalPath, normalPathWithCase } = this.sanitizePath(path)
+        const { normalPath, normalPathWithCase, slicedPath } = this.sanitizePath(path)
         const rootMethod = this.root[method]
         const lookupResult: TProstoLookupResult<HandlerType> = {
             route: null as unknown as TProstoRoute<HandlerType>,
@@ -203,13 +204,13 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             const pathLength = normalPath.length
             const { parametrics } = rootMethod
             const bySegments = parametrics.byParts[pathSegmentsCount]
-            // const slicedPath: string[] = []
             if (bySegments) {
                 for (let i = 0; i < bySegments.length; i++) {
                     lookupResult.route = bySegments[i] as TProstoRoute<HandlerType>
                     if (pathLength >= lookupResult.route.minLength) {
                         if (normalPathWithCase.startsWith(lookupResult.route.firstStatic)
-                            && lookupResult.route.fullMatch(normalPath, lookupResult.ctx.params, matcherFuncUtils)) {
+                            && lookupResult.route.fullMatch(slicedPath, lookupResult.ctx.params, matcherFuncUtils)) {
+                            console.log('full match', slicedPath)
                             return cache(lookupResult)
                         }
                     }
@@ -220,7 +221,8 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 lookupResult.route = wildcards[i] as TProstoRoute<HandlerType>
                 if (pathLength >= lookupResult.route.minLength) {
                     if (normalPathWithCase.startsWith(lookupResult.route.firstStatic)
-                        && lookupResult.route.fullMatch(normalPath, lookupResult.ctx.params, matcherFuncUtils)) {
+                        && lookupResult.route.fullMatch(slicedPath, lookupResult.ctx.params, matcherFuncUtils)) {
+                        console.log('full match', slicedPath)
                         return cache(lookupResult)
                     }
                 }
