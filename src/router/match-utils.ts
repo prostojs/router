@@ -36,8 +36,8 @@ export function generateFullMatchFunc<ParamsType = TProstoParamsType>(segments: 
     Object.keys(obj).forEach(key => {
         str.append(
             obj[key].length > 1
-                ? `\tparams['${key}'] = [${ obj[key].map(i => `utils.safeDecodeURIComponent(a[${i}])`).join(', ') }]`
-                : `\tparams['${key}'] = utils.safeDecodeURIComponent(a[${obj[key][0]}])`,
+                ? `\tparams['${key}'] = [${ obj[key].map(i => `a[${i}]`).join(', ') }]`
+                : `\tparams['${key}'] = a[${obj[key][0]}]`,
             true
         )
     })
