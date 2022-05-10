@@ -314,3 +314,16 @@ describe('ProstoRouter duplicate paths', () => {
         }
     })
 })
+
+describe('ProstoRouter decode url components (find-my-way/issues/234)', () => {
+    it('must parse /:param path', () => {
+        const router = new ProstoRouter()
+        const handler = () => {}
+        router.get('/:param', handler)
+        
+        expect((router.find('GET', '/foo%23bar') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: 'foo#bar' })
+        expect((router.find('GET', '/%F0%9F%8D%8C') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: '🍌' })
+        expect((router.find('GET', '/%F0%9F%8D%8C-foo') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: '🍌-foo' })
+        expect((router.find('GET', '/%F0%9F%8D%8C-foo%23bar') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: '🍌-foo#bar' })
+    })
+})
