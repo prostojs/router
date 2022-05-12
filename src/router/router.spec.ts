@@ -94,6 +94,8 @@ const trickyRoutesDoubleEncoding = [
     { r: '/test~123/:param', check: '/test~123/%25', params: { param: '%' } },
     { r: '/2/test~123/:param', check: '/2/test%7E123/%2525', params: { param: '%25' } },
     { r: '/3/test~123/:param', check: '/3/test~123/%2525', params: { param: '%25' } },
+
+    { r: '/4/%2F/:param', check: '/4/%252F/1', params: { param: '1' } },
 ]
 
 type TTestHandler = (ctx: TProstoLookupContext) => void
