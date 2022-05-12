@@ -1,3 +1,13 @@
+## [0.0.11](https://github.com/prostojs/router/compare/v0.0.10...v0.0.11) (2022-05-12)
+
+
+### Bug Fixes
+
+* change prc replacer ([5e2029e](https://github.com/prostojs/router/commit/5e2029e0a8f803adfca582356c30b5b3fe5216ca))
+* get rid of percent replacer ([33facfd](https://github.com/prostojs/router/commit/33facfdba574125c1bf77c6411eb39505dc759c1))
+
+
+
 ## [0.0.10](https://github.com/prostojs/router/compare/v0.0.9...v0.0.10) (2022-05-12)
 
 
