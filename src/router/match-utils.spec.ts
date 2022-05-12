@@ -57,7 +57,7 @@ describe('match-utils->generateFullMatchRegex', () => {
 describe('match-utils->generateFullMatchFunc', () => {
     const utils = {
         safeDecodeURIComponent: (s: string) => s,
-        safeDecodeURIComponentWithPercent: (s: string) => s,
+        // safeDecodeURIComponentWithPercent: (s: string) => s,
     }
     it('must generate working function with VAR and WILDCARD', () => {
         const func = generateFullMatchFunc(segments)

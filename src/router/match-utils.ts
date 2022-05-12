@@ -4,14 +4,12 @@ import { EPathSegmentType, TParsedSegment } from '../parser/p-types'
 import { escapeRegex } from '../utils/regex'
 import { TProstoRouteMatchFunc } from './router.types'
 
-export const PERCENT_REPLACER = '‷‰‴'
-
 export function generateFullMatchRegex(segments: TParsedSegment[], nonCapturing = false): string {
     let regex = ''
     segments.forEach(segment => {
         switch (segment.type) {
             case EPathSegmentType.STATIC: 
-                regex += escapeRegex(segment.value.replace(/%/g, PERCENT_REPLACER))
+                regex += escapeRegex(segment.value)
                 break
             case EPathSegmentType.VARIABLE:
             case EPathSegmentType.WILDCARD:
@@ -38,8 +36,8 @@ export function generateFullMatchFunc<ParamsType = TProstoParamsType>(segments: 
     Object.keys(obj).forEach(key => {
         str.append(
             obj[key].length > 1
-                ? `\tparams['${key}'] = [${ obj[key].map(i => `utils.safeDecodeURIComponentWithPercent(a[${i}])`).join(', ') }]`
-                : `\tparams['${key}'] = utils.safeDecodeURIComponentWithPercent(a[${obj[key][0]}])`,
+                ? `\tparams['${key}'] = [${ obj[key].map(i => `utils.safeDecodeURIComponent(a[${i}])`).join(', ') }]`
+                : `\tparams['${key}'] = utils.safeDecodeURIComponent(a[${obj[key][0]}])`,
             true
         )
     })

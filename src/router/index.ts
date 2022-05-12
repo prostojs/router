@@ -6,7 +6,7 @@ import { parsePath } from '../parser'
 import { EPathSegmentType } from '../parser/p-types'
 import { safeDecodeURI, safeDecodeURIComponent } from '../utils/decode'
 import { countOfSlashes } from '../utils/strings'
-import { generateFullMatchFunc, generatePathBuilder, PERCENT_REPLACER } from './match-utils'
+import { generateFullMatchFunc, generatePathBuilder } from './match-utils'
 import { THttpMethod, TProstoRouteHandler, TProstoRouterMainIndex, TProstoRoute, TProstoRoutsRegistry,
     TProstoParamsType, TProstoRouterPathBuilder,
     TProstoRouterMethodIndex, TProstoLookupResult, TProstoRouterOptions, TProstoRouteOptions } from './router.types'
@@ -16,9 +16,6 @@ const methods: THttpMethod[] = ['GET', 'PUT', 'POST', 'DELETE', 'PATCH', 'HEAD',
 
 const matcherFuncUtils = {
     safeDecodeURIComponent,
-    safeDecodeURIComponentWithPercent: (str: string) => {
-        return safeDecodeURIComponent(str.replace(new RegExp(PERCENT_REPLACER, 'g'), '%25'))
-    },
 }
 
 const banner = dye('yellow-bright')('[router]')
@@ -75,7 +72,10 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             this.logger.debug('Register route ' + method + ': ' + path)
         }
         const opts = this.mergeOptions(options)
-        const normalPath = ('/' + path).replace(/^\/\//, '/').replace(/\/$/, '').replace(/%/g, PERCENT_REPLACER)
+        const normalPath = ('/' + path)
+            .replace(/^\/\//, '/')
+            .replace(/\/$/, '')
+            .replace(/%/g, '%25') // <-- workaround to avoid double decoding
         const { root } = this
         const segments = parsePath(normalPath)
         if (!root[method]) {
@@ -169,7 +169,10 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         if (this._options.ignoreTrailingSlash && slicedPath[slicedPath.length - 1] === '/') {
             slicedPath = slicedPath.slice(0, slicedPath.length - 1)
         }
-        const normalPath = safeDecodeURI(slicedPath.replace(/%25/g, PERCENT_REPLACER))
+        const normalPath = safeDecodeURI(
+            slicedPath
+                .replace(/%25/g, '%2525') // <-- workaround to avoid double decoding
+        )
         return {
             normalPath,
             normalPathWithCase: this._options.ignoreCase ? normalPath.toLowerCase() : normalPath,
