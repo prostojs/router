@@ -55,13 +55,17 @@ describe('match-utils->generateFullMatchRegex', () => {
 })
 
 describe('match-utils->generateFullMatchFunc', () => {
+    const utils = {
+        safeDecodeURIComponent: (s: string) => s,
+        safeDecodeURIComponentWithPercent: (s: string) => s,
+    }
     it('must generate working function with VAR and WILDCARD', () => {
         const func = generateFullMatchFunc(segments)
         const params: Record<string, string> = {}
 
         expect(typeof func === 'function')
 
-        func('staticvalue-wildcard', params, { safeDecodeURIComponent: (s: string) => s })
+        func('staticvalue-wildcard', params, utils)
 
         expect(Object.keys(params)).toEqual(['key', '*'])
         expect(params.key).toEqual('value')
@@ -74,7 +78,7 @@ describe('match-utils->generateFullMatchFunc', () => {
 
         expect(typeof func === 'function')
 
-        func('val1-val2-wild1-wild2', params, { safeDecodeURIComponent: (s: string) => s })
+        func('val1-val2-wild1-wild2', params, utils)
 
         expect(Object.keys(params)).toEqual(['key', '*'])
         expect(params.key.length).toEqual(2)

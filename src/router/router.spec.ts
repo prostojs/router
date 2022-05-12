@@ -63,13 +63,10 @@ const encodingCheck = [
         ],
     }, {
         r: '/asset%2f123/test',
-        checks: ['/asset%2f123/test'],
+        checks: ['/asset%252f123/test'],
     }, {
         r: '/house%2325',
-        checks: ['/house%2325'],
-    }, {
-        r: '/milk%2Cbutter%2Cmeat',
-        checks: ['/milk%2Cbutter%2Cmeat'],
+        checks: ['/house%252325'],
     },
 ]
 const orderRoutes = [
@@ -86,6 +83,17 @@ const orderChecks = [
     { check: '/order/a123/a0123', to: orderRoutes[1] },
     { check: '/order/b123/a0123', to: orderRoutes[3] },
     { check: '/order/c123/a0123/d12', to: orderRoutes[5] },
+]
+
+const trickyRoutesDoubleEncoding = [
+    { r: '/🍌/:id', check: '/%F0%9F%8D%8C/%23', params: { id: '#' } },
+    { r: '/2/🍌/:id', check: '/2/%F0%9F%8D%8C/%2523', params: { id: '%23' } },
+    { r: '/:id/🍌', check: '/%23/%F0%9F%8D%8C', params: { id: '#' } },
+    { r: '/2/:id/🍌', check: '/2/%2523/%F0%9F%8D%8C', params: { id: '%23' } },
+
+    { r: '/test~123/:param', check: '/test~123/%25', params: { param: '%' } },
+    { r: '/2/test~123/:param', check: '/2/test%7E123/%2525', params: { param: '%25' } },
+    { r: '/3/test~123/:param', check: '/3/test~123/%2525', params: { param: '%25' } },
 ]
 
 type TTestHandler = (ctx: TProstoLookupContext) => void
@@ -328,22 +336,12 @@ describe('ProstoRouter decode url components (find-my-way/issues/234)', () => {
     })
 })
 
-describe('ProstoRouter decode url components (find-my-way/pull/253)', () => {
-    const singleEncode = (str: string) => encodeURIComponent(str)
-    const doubleEncode = (str: string) => encodeURIComponent(encodeURIComponent(str))
+describe('ProstoRouter must process tricky double encoded URIs', () => {
+    trickyRoutesDoubleEncoding.forEach(r => router.get(r.r, () => r.r))
 
-    it('must parse /🍌/:id path', () => {
-        const router = new ProstoRouter()
-        const handler = () => {}
-        router.get('/🍌/:id', handler)
-        router.get('/:id/🍌', handler)
-
-        console.log(router.toTree())
-                
-        expect((router.find('GET', `/%F0%9F%8D%8C/${singleEncode('#')}`) as TProstoLookupResult<typeof handler>).ctx.params['id']).toEqual('#')
-        expect((router.find('GET', `/%F0%9F%8D%8C/${doubleEncode('#')}`) as TProstoLookupResult<typeof handler>).ctx.params['id']).toEqual(singleEncode('#'))
-                
-        expect((router.find('GET', `/${singleEncode('#')}/%F0%9F%8D%8C`) as TProstoLookupResult<typeof handler>).ctx.params['id']).toEqual('#')
-        expect((router.find('GET', `/${doubleEncode('#')}/%F0%9F%8D%8C`) as TProstoLookupResult<typeof handler>).ctx.params['id']).toEqual(singleEncode('#'))
+    trickyRoutesDoubleEncoding.forEach(r => {
+        it('must resolve tricky double encoded ' + r.check + ' -> ' + r.r + ' ' + JSON.stringify(r.params), () => {
+            testPath(router, 'GET', r.check, r.r, r.params as unknown as Record<string, string | string[]>)
+        })
     })
 })

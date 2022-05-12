@@ -6,7 +6,7 @@ import { parsePath } from '../parser'
 import { EPathSegmentType } from '../parser/p-types'
 import { safeDecodeURI, safeDecodeURIComponent } from '../utils/decode'
 import { countOfSlashes } from '../utils/strings'
-import { generateFullMatchFunc, generatePathBuilder } from './match-utils'
+import { generateFullMatchFunc, generatePathBuilder, PERCENT_REPLACER } from './match-utils'
 import { THttpMethod, TProstoRouteHandler, TProstoRouterMainIndex, TProstoRoute, TProstoRoutsRegistry,
     TProstoParamsType, TProstoRouterPathBuilder,
     TProstoRouterMethodIndex, TProstoLookupResult, TProstoRouterOptions, TProstoRouteOptions } from './router.types'
@@ -16,6 +16,9 @@ const methods: THttpMethod[] = ['GET', 'PUT', 'POST', 'DELETE', 'PATCH', 'HEAD',
 
 const matcherFuncUtils = {
     safeDecodeURIComponent,
+    safeDecodeURIComponentWithPercent: (str: string) => {
+        return safeDecodeURIComponent(str.replace(new RegExp(PERCENT_REPLACER, 'g'), '%25'))
+    },
 }
 
 const banner = dye('yellow-bright')('[router]')
@@ -72,7 +75,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             this.logger.debug('Register route ' + method + ': ' + path)
         }
         const opts = this.mergeOptions(options)
-        const normalPath = ('/' + path).replace(/^\/\//, '/').replace(/\/$/, '')
+        const normalPath = ('/' + path).replace(/^\/\//, '/').replace(/\/$/, '').replace(/%/g, PERCENT_REPLACER)
         const { root } = this
         const segments = parsePath(normalPath)
         if (!root[method]) {
@@ -166,11 +169,10 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         if (this._options.ignoreTrailingSlash && slicedPath[slicedPath.length - 1] === '/') {
             slicedPath = slicedPath.slice(0, slicedPath.length - 1)
         }
-        const normalPath = safeDecodeURI(slicedPath)
+        const normalPath = safeDecodeURI(slicedPath.replace(/%25/g, PERCENT_REPLACER))
         return {
             normalPath,
             normalPathWithCase: this._options.ignoreCase ? normalPath.toLowerCase() : normalPath,
-            slicedPath,
         }
     }
 
@@ -182,7 +184,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             const cached = this.cache[method].get(path) as TProstoLookupResult<HandlerType>
             if (cached) return cached
         }
-        const { normalPath, normalPathWithCase, slicedPath } = this.sanitizePath(path)
+        const { normalPath, normalPathWithCase } = this.sanitizePath(path)
         const rootMethod = this.root[method]
         const lookupResult: TProstoLookupResult<HandlerType> = {
             route: null as unknown as TProstoRoute<HandlerType>,
@@ -209,8 +211,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                     lookupResult.route = bySegments[i] as TProstoRoute<HandlerType>
                     if (pathLength >= lookupResult.route.minLength) {
                         if (normalPathWithCase.startsWith(lookupResult.route.firstStatic)
-                            && lookupResult.route.fullMatch(slicedPath, lookupResult.ctx.params, matcherFuncUtils)) {
-                            console.log('full match', slicedPath)
+                            && lookupResult.route.fullMatch(normalPath, lookupResult.ctx.params, matcherFuncUtils)) {
                             return cache(lookupResult)
                         }
                     }
@@ -221,8 +222,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 lookupResult.route = wildcards[i] as TProstoRoute<HandlerType>
                 if (pathLength >= lookupResult.route.minLength) {
                     if (normalPathWithCase.startsWith(lookupResult.route.firstStatic)
-                        && lookupResult.route.fullMatch(slicedPath, lookupResult.ctx.params, matcherFuncUtils)) {
-                        console.log('full match', slicedPath)
+                        && lookupResult.route.fullMatch(normalPath, lookupResult.ctx.params, matcherFuncUtils)) {
                         return cache(lookupResult)
                     }
                 }
