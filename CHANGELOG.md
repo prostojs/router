@@ -1,3 +1,12 @@
+## [0.0.10](https://github.com/prostojs/router/compare/v0.0.9...v0.0.10) (2022-05-12)
+
+
+### Bug Fixes
+
+* fix double encoding routing ([a5e996e](https://github.com/prostojs/router/commit/a5e996e0d04410bf4d8520f8a8a6cb29cb5a42ea))
+
+
+
 ## [0.0.9](https://github.com/prostojs/router/compare/v0.0.8...v0.0.9) (2022-05-10)
 
 
