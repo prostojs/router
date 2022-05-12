@@ -4,14 +4,7 @@ import { EPathSegmentType, TParsedSegment } from '../parser/p-types'
 import { escapeRegex } from '../utils/regex'
 import { TProstoRouteMatchFunc } from './router.types'
 
-// const specialCharacters: [RegExp, string, string][] = [
-//     [/~/g, '~', '%7E'],
-//     // [/\./g, '\\.', '%2E'],
-//     [/_/g, '_', '%5F'],
-//     // [/-/g, '-', '%2D'],
-// ]
-
-export const PERCENT_REPLACER = '‣PRC⁑'
+export const PERCENT_REPLACER = '‷‰‴'
 
 export function generateFullMatchRegex(segments: TParsedSegment[], nonCapturing = false): string {
     let regex = ''
