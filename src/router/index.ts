@@ -56,6 +56,20 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         }
     }
 
+    protected refreshCache(method: THttpMethod | '*') {
+        if (method === '*') {
+            this.cache.GET.reset()
+            this.cache.PUT.reset()
+            this.cache.POST.reset()
+            this.cache.PATCH.reset()
+            this.cache.DELETE.reset()
+            this.cache.HEAD.reset()
+            this.cache.OPTIONS.reset()
+        } else {
+            this.cache[method].reset()
+        }
+    }
+
     protected root: TProstoRouterMainIndex = {}
 
     protected routes: TProstoRoute<unknown, unknown>[] = []
@@ -71,6 +85,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
             this.logger.debug('Register route ' + method + ': ' + path)
         }
+        this.refreshCache(method)
         const opts = this.mergeOptions(options)
         const normalPath = ('/' + path)
             .replace(/^\/\//, '/')
