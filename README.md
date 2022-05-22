@@ -54,7 +54,7 @@ server.listen(3000, (err) => {
 
 ```ts
 // `require` example
-const { ProstoRouter } = require('prosto-router')
+const { ProstoRouter } = require('@prostojs/router')
 const http = require('http')
 
 const router = new ProstoRouter()
