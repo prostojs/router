@@ -16,4 +16,16 @@ module.exports = {
     ],
     watchPathIgnorePatterns: ['/node_modules/', '/dist/', '/.git/'],
     testEnvironment: "node",
+    globals: {
+      __DYE_RED_BRIGHT__: '',
+      __DYE_BOLD__: '',
+      __DYE_RESET__: '',
+      __DYE_RED__: '',
+      __DYE_COLOR_OFF__: '',
+      __DYE_GREEN__: '',
+      __DYE_YELLOW__: '',
+      __DYE_DIM__: '',
+      __DYE_DIM_OFF__: '',
+      __VERSION__: 'JEST_TEST',
+    }
 }

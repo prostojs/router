@@ -1,6 +1,4 @@
-import { EProstoLogLevel } from '@prostojs/logger'
 import { TParsedSegment } from '../parser/p-types'
-import { TConsoleInterface } from '@prostojs/dye'
 
 export type THttpMethod = 'GET' | 'PUT' | 'POST' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'
 

@@ -3,19 +3,8 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { ProstoRouter, THttpMethod, TProstoLookupResult } from '.'
 import { TProstoLookupContext } from '..'
-import { EProstoLogLevel } from '@prostojs/logger'
 
-const c = {
-    log: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-}
-const router = new ProstoRouter<TTestHandler>({
-    logLevel: EProstoLogLevel.DEBUG,
-    logger: c,
-})
+const router = new ProstoRouter<TTestHandler>()
 const basicRoutes = [
     '/apiRoot',
     '/apiRoot/nested',
@@ -193,7 +182,7 @@ describe('ProstoRouter', () => {
 })
 
 describe('ProstoRouter ignoreTrailingSlash', () => {
-    const router = new ProstoRouter<TTestHandler>({ ignoreTrailingSlash: true, logLevel: EProstoLogLevel.NOTHING, logger: c })
+    const router = new ProstoRouter<TTestHandler>({ ignoreTrailingSlash: true })
     basicRoutes.forEach(r => router.get(r, () => r))
     parametricRoutes.forEach(r => router.get(r.r, () => r.r))
 
@@ -211,7 +200,7 @@ describe('ProstoRouter ignoreTrailingSlash', () => {
 })
 
 describe('ProstoRouter ignoreCase', () => {
-    const router = new ProstoRouter<TTestHandler>({ ignoreCase: true, logLevel: EProstoLogLevel.NOTHING, logger: c })
+    const router = new ProstoRouter<TTestHandler>({ ignoreCase: true })
     basicRoutes.forEach(r => router.get(r, () => r))
     parametricRoutes.forEach(r => router.get(r.r, () => r.r))
 
