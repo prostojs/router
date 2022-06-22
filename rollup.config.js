@@ -13,6 +13,8 @@ const name = packageOptions.filename || path.basename(packageDir)
 // ensure TS checks only once for each build
 let hasTSChecked = false
 
+const dyeModifiers = ['dim', 'bold', 'underscore', 'inverse', 'italic', 'crossed']
+const dyeColors = ['red', 'green', 'cyan', 'blue', 'yellow', 'white', 'magenta', 'black']
 const warning = dye('yellow').attachConsole()
 
 const outputConfigs = {
@@ -87,9 +89,9 @@ function createConfig(format, output, plugins = []) {
   output.sourcemap = !!process.env.SOURCE_MAP
   output.externalLiveBindings = false
   output.globals = {
-    '@prostojs/dye': 'ProstoDye',
+    // '@prostojs/dye': 'ProstoDye',
     '@prostojs/tree': 'ProstoTree',
-    '@prostojs/logger': 'ProstoLogger',
+    // '@prostojs/logger': 'ProstoLogger',
     '@prostojs/parser': 'ProstoParser',
   }
 
@@ -171,7 +173,7 @@ function createConfig(format, output, plugins = []) {
         isGlobalBuild,
         isNodeBuild
       ),
-      createDyeReplacePlugin(),
+      createDyeReplaceStringPlugin(),
       ...nodePlugins,
       ...plugins
     ],
@@ -187,19 +189,50 @@ function createConfig(format, output, plugins = []) {
   }
 }
 
-function createDyeReplacePlugin() {
+function createDyeReplaceStringPlugin() {
+  const c = dye('red')
+  const bg = dye('bg-red')
   const dyeReplacements = {
     'dye.reset': dye.reset,
+    'dye-off.color': c.close,
+    'dye-off.bg': bg.close,
   }
-  ;['dim', 'bold', 'red', 'green', 'cyan', 'blue'].forEach(v => {
+  dyeModifiers.forEach(v => {
     dyeReplacements[`dye.${ v }`] = dye(v).open
     dyeReplacements[`dye-off.${ v }`] = dye(v).close
+  })
+  dyeColors.forEach(v => {
+    dyeReplacements[`dye.${ v }`] = dye(v).open
+    dyeReplacements[`dye.bg-${ v }`] = dye('bg-' + v).open
+    dyeReplacements[`dye.${ v }-bright`] = dye(v + '-bright').open
+    dyeReplacements[`dye.bg-${ v }-bright`] = dye('bg-' + v + '-bright').open
   })  
   return replace({
     values: dyeReplacements,
     delimiters: ['<', '>'],
     preventAssignment: false
   })
+}
+
+function createDyeReplaceConst() {
+  const c = dye('red')
+  const bg = dye('bg-red')
+  const dyeReplacements = {
+    '__DYE_RESET__': '\'' + dye.reset + '\'',
+    '__DYE_COLOR_OFF__': '\'' + c.close + '\'',
+    '__DYE_BG_OFF__': '\'' + bg.close + '\'',
+  }
+  dyeModifiers.forEach(v => {
+    dyeReplacements[`__DYE_${ v.toUpperCase() }__`] = '\'' + dye(v).open + '\''
+    dyeReplacements[`__DYE_${ v.toUpperCase() }_OFF__`] = '\'' + dye(v).close + '\''
+  })
+  dyeColors.forEach(v => {
+    dyeReplacements[`__DYE_${ v.toUpperCase() }__`] = '\'' + dye(v).open + '\''
+    dyeReplacements[`__DYE_BG_${ v.toUpperCase() }__`] = '\'' + dye('bg-' + v).open + '\''
+    dyeReplacements[`__DYE_${ v.toUpperCase() }_BRIGHT__`] = '\'' + dye(v + '-bright').open + '\''
+    dyeReplacements[`__DYE_BG_${ v.toUpperCase() }_BRIGHT__`] = '\'' + dye('bg-' + v + '-bright').open + '\''
+  })
+  return dyeReplacements
 }
 
 function createReplacePlugin(
@@ -223,6 +256,7 @@ function createReplacePlugin(
     __BROWSER__: isBrowserBuild,
     __GLOBAL__: isGlobalBuild,
     __NODE_JS__: isNodeBuild,
+    ...createDyeReplaceConst(),
   }
   Object.keys(replacements).forEach(key => {
     if (key in process.env) {

@@ -1,7 +1,5 @@
 export * from './router.types'
 import { ProstoCache } from '@prostojs/cache'
-import { ProstoLogger, EProstoLogLevel } from '@prostojs/logger'
-import { TConsoleInterface, dye, TDyeStylist } from '@prostojs/dye'
 import { parsePath } from '../parser'
 import { EPathSegmentType } from '../parser/p-types'
 import { safeDecodeURI, safeDecodeURIComponent } from '../utils/decode'
@@ -11,14 +9,13 @@ import { THttpMethod, TProstoRouteHandler, TProstoRouterMainIndex, TProstoRoute,
     TProstoParamsType, TProstoRouterPathBuilder,
     TProstoRouterMethodIndex, TProstoLookupResult, TProstoRouterOptions, TProstoRouteOptions } from './router.types'
 import { ProstoTree } from '@prostojs/tree'
+import { banner } from '../utils/banner'
 
 const methods: THttpMethod[] = ['GET', 'PUT', 'POST', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
 
 const matcherFuncUtils = {
     safeDecodeURIComponent,
 }
-
-const banner = dye('yellow-bright')('[router]')
 
 type TProstoRouterCache = {
     [method in THttpMethod]: ProstoCache
@@ -28,20 +25,11 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
 
     protected cache: TProstoRouterCache
 
-    protected readonly logger: TConsoleInterface
-
     constructor(_options?: Partial<TProstoRouterOptions>) {
-        const logLevel = _options?.logLevel || EProstoLogLevel.INFO
         this._options = {
             ..._options,
-            logLevel,
-            logger: _options?.logger as TConsoleInterface || new ProstoLogger({
-                banner,
-                logLevel,
-            }) as TConsoleInterface,
         }
-        this.logger = this._options.logger 
-        this.logger.info('ProstoRouter initialized')
+        consoleInfo('The Router Initialized')
         const cacheOpts = {
             limit: _options?.cacheLimit || 0,
         }
@@ -82,9 +70,9 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         options: TProstoRouteOptions,
         handler: HandlerType
     ): TProstoRouterPathBuilder<ParamsType> {
-        if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
-            this.logger.debug('Register route ' + method + ': ' + path)
-        }
+        // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
+        //     this.logger.debug('Register route ' + method + ': ' + path)
+        // }
         this.refreshCache(method)
         const opts = this.mergeOptions(options)
         const normalPath = ('/' + path)
@@ -114,17 +102,17 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         if (route) {
             if (this._options.disableDuplicatePath) {
                 const error = `Attempt to register duplicated path: "${path}". Duplicate paths are disabled.\nYou can enable duplicated paths removing 'disableDuplicatePath' option.`
-                this.logger.error(error)
+                consoleError(error)
                 throw new Error(error)
             }
             if (route.handlers.includes(handler)) {
-                if (this._options.logLevel >= EProstoLogLevel.ERROR) {
-                    this.logger.error('Duplicate route with same handler ignored ' + generalized)
-                }
+                // if (this._options.logLevel >= EProstoLogLevel.ERROR) {
+                consoleError('Duplicate route with same handler ignored ' + generalized)
+                // }
             } else {
-                if (this._options.logLevel >= EProstoLogLevel.WARN) {
-                    this.logger.warn('Duplicate route registered ' + generalized)
-                }
+                // if (this._options.logLevel >= EProstoLogLevel.WARN) {
+                consoleWarn('Duplicate route registered ' + generalized)
+                // }
                 route.handlers.push(handler)
             }
         } else {
@@ -195,9 +183,9 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
     }
 
     public lookup<HandlerType = BaseHandlerType>(method: THttpMethod, path: string): TProstoLookupResult<HandlerType> | void {
-        if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
-            this.logger.debug('Lookup route ' + method + ': ' + path)
-        }
+        // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
+        //     this.logger.debug('Lookup route ' + method + ': ' + path)
+        // }
         if (this._options.cacheLimit) {
             const cached = this.cache[method].get(path) as TProstoLookupResult<HandlerType>
             if (cached) return cached
@@ -209,9 +197,9 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             ctx: { params: {} },
         }
         const cache = (result: TProstoLookupResult<HandlerType>): TProstoLookupResult<HandlerType> => {
-            if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
-                this.logger.debug('Route found  ' + method + ': ' + lookupResult.route.path, lookupResult.ctx.params)
-            }
+            // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
+            //     this.logger.debug('Route found  ' + method + ': ' + lookupResult.route.path, lookupResult.ctx.params)
+            // }
             if (this._options.cacheLimit) {
                 this.cache[method].set(path, result)
             }
@@ -246,9 +234,9 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 }
             }
         }
-        if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
-            this.logger.debug('Route not found ' + method + ': ' + path)
-        }
+        // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
+        //     this.logger.debug('Route not found ' + method + ': ' + path)
+        // }
     }
 
     public find(method: THttpMethod, path: string) {
@@ -313,14 +301,14 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
     }
 
     public toTree() {
-        const rootStyle = dye('bold')
-        const paramStyle = dye('cyan', 'bold').prefix(':')
-        const regexStyle = dye('cyan', 'dim')
-        const handlerStyle = dye().prefix(dye('bold', 'green-bright')('→ '))
-        const methodStyle = dye('green-bright').prefix('• (').suffix(') ')
+        const rootStyle = (v: string) => __DYE_BOLD__ + v + __DYE_BOLD_OFF__
+        const paramStyle = (v: string) => __DYE_CYAN__ + __DYE_BOLD__ + ':' + v + __DYE_COLOR_OFF__ + __DYE_BOLD_OFF__
+        const regexStyle = (v: string) => __DYE_CYAN__ + __DYE_DIM__ + v + __DYE_DIM_OFF__ + __DYE_COLOR_OFF__
+        const handlerStyle = (v: string) => __DYE_BOLD__ + __DYE_GREEN_BRIGHT__ + '→ ' + __DYE_COLOR_OFF__ + __DYE_BOLD_OFF__ + v
+        const methodStyle = (v: string) => __DYE_GREEN_BRIGHT__ + '• (' + v + ') '
         type TreeData = {
             label: string
-            stylist?: TDyeStylist
+            stylist?: (v: string) => string
             methods: THttpMethod[]
             children: TreeData[]
         }
@@ -331,7 +319,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             children: [],
         }
 
-        function toChild(d: TreeData, label: string, stylist?: TDyeStylist) {
+        function toChild(d: TreeData, label: string, stylist?: (v: string) => string) {
             let found = d.children.find(c => c.label === label)
             if (!found) {
                 found = {
@@ -405,4 +393,16 @@ function routeSorter(a: TProstoRoute<unknown>, b: TProstoRoute<unknown>): number
         if (len) return len
     }
     return 0
+}
+
+function consoleError(v: string) {
+    console.info(__DYE_RED_BRIGHT__ + banner() + v + __DYE_COLOR_OFF__)
+}
+
+function consoleWarn(v: string) {
+    console.info(__DYE_YELLOW__ + banner() + v + __DYE_COLOR_OFF__)
+}
+
+function consoleInfo(v: string) {
+    console.info(__DYE_GREEN__ + __DYE_DIM__ + banner() + v + __DYE_COLOR_OFF__ + __DYE_DIM_OFF__)
 }
