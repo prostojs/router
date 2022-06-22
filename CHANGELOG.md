@@ -1,3 +1,12 @@
+## [0.0.12](https://github.com/prostojs/router/compare/v0.0.11...v0.0.12) (2022-06-22)
+
+
+### Features
+
+* **cache:** add refresh cache method ([b99485e](https://github.com/prostojs/router/commit/b99485ec74648f08e8d5a55bf67c3b79acbc9667))
+
+
+
 ## [0.0.11](https://github.com/prostojs/router/compare/v0.0.10...v0.0.11) (2022-05-12)
 
 
