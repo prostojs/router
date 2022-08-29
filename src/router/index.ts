@@ -376,7 +376,7 @@ function extractOptionsAndHandler<HandlerType = TProstoRouteHandler>(options: TP
     if (typeof options === 'function') {
         func = options as HandlerType
     } else {
-        opts = options
+        opts = options as TProstoRouteOptions
     }
     return { opts, func }
 }
