@@ -1,3 +1,12 @@
+## [0.0.13](https://github.com/prostojs/router/compare/v0.0.12...v0.0.13) (2022-08-29)
+
+
+### Bug Fixes
+
+* fix empty path (root) ([b62300f](https://github.com/prostojs/router/commit/b62300fbbb5077d2c5b33b586948eabf3a9fa986))
+
+
+
 ## [0.0.12](https://github.com/prostojs/router/compare/v0.0.11...v0.0.12) (2022-06-22)
 
 
