@@ -116,11 +116,11 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 route.handlers.push(handler)
             }
         } else {
-            const isStatic = segments.length === 1 && segments[0].type === EPathSegmentType.STATIC
+            const isStatic = segments.length === 1 && segments[0].type === EPathSegmentType.STATIC || segments.length === 0
             const isParametric = !!segments.find(p => p.type === EPathSegmentType.VARIABLE)
             const isWildcard = !!segments.find(p => p.type === EPathSegmentType.WILDCARD)
             const lengths = segments.map(s => s.type === EPathSegmentType.STATIC ? s.value.length : 0)
-            const normalPathCase = this._options.ignoreCase ? segments[0].value.toLowerCase() : segments[0].value
+            const normalPathCase = segments[0] ? (this._options.ignoreCase ? segments[0].value.toLowerCase() : segments[0].value) : '/'
             this.routesRegistry[generalized] = route = {
                 method,
                 options: opts,

@@ -339,3 +339,10 @@ describe('ProstoRouter must process tricky double encoded URIs', () => {
         })
     })
 })
+
+describe('ProstoRouter must process empty (root) path', () => {
+    router.get('/', () => 'root')
+    it('must resolve root path', () => {
+        testPath(router, 'GET', '/', 'root')
+    })
+})
