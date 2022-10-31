@@ -346,3 +346,10 @@ describe('ProstoRouter must process empty (root) path', () => {
         testPath(router, 'GET', '/', 'root')
     })
 })
+
+describe('ProstoRouter wildcard + params', () => {
+    router.get('/staticcss/*/styles/:filename.css', () => 'ok')
+    it('must resolve wildcard + params path', () => {
+        testPath(router, 'GET', '/staticcss/1/2/3/styles/style.css', 'ok')
+    })
+})

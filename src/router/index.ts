@@ -144,7 +144,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 rootMethod.statics[normalPathCase] = route as TProstoRoute<unknown, unknown>
             } else {
                 // dynamic
-                if (route.isParametric) {
+                if (route.isParametric && !route.isWildcard) {
                     const countOfParts = route.segments
                         .filter(s => s.type === EPathSegmentType.STATIC)
                         .map(s => countOfSlashes(s.value)).reduce((a, b) => a + b, 1)  
@@ -305,7 +305,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         const paramStyle = (v: string) => __DYE_CYAN__ + __DYE_BOLD__ + ':' + v + __DYE_COLOR_OFF__ + __DYE_BOLD_OFF__
         const regexStyle = (v: string) => __DYE_CYAN__ + __DYE_DIM__ + v + __DYE_DIM_OFF__ + __DYE_COLOR_OFF__
         const handlerStyle = (v: string) => __DYE_BOLD__ + __DYE_GREEN_BRIGHT__ + '→ ' + __DYE_COLOR_OFF__ + __DYE_BOLD_OFF__ + v
-        const methodStyle = (v: string) => __DYE_GREEN_BRIGHT__ + '• (' + v + ') '
+        const methodStyle = (v: string) => __DYE_DIM_OFF__ + __DYE_GREEN_BRIGHT__ + '• (' + v + ') ' + __DYE_COLOR_OFF__
         type TreeData = {
             label: string
             stylist?: (v: string) => string
