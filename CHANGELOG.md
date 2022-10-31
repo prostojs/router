@@ -1,3 +1,12 @@
+## [0.0.14](https://github.com/prostojs/router/compare/v0.0.13...v0.0.14) (2022-10-31)
+
+
+### Bug Fixes
+
+* fix tree view and static+param routes ([5edf195](https://github.com/prostojs/router/commit/5edf195bcab77e731a5613fb6e75a757dee3adbc))
+
+
+
 ## [0.0.13](https://github.com/prostojs/router/compare/v0.0.12...v0.0.13) (2022-08-29)
 
 
