@@ -1,3 +1,12 @@
+## [0.0.15](https://github.com/prostojs/router/compare/v0.0.14...v0.0.15) (2022-11-23)
+
+
+### Bug Fixes
+
+* ignore cache for unknown methods cache ([01d02e4](https://github.com/prostojs/router/commit/01d02e4d9315c7dc2aa0b404abb522404c82f5e3))
+
+
+
 ## [0.0.14](https://github.com/prostojs/router/compare/v0.0.13...v0.0.14) (2022-10-31)
 
 
