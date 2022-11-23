@@ -62,6 +62,7 @@ export interface TProstoRouterOptions extends TProstoRouteOptions {
     ignoreCase?: boolean
     cacheLimit?: number
     disableDuplicatePath?: boolean
+    silent?: boolean
 }
 
 export type TProstoRouteMatchFunc<ParamsType = TProstoParamsType> = (path: string, params: ParamsType, utils: Record<string, unknown>) => string[] | false

@@ -29,7 +29,9 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         this._options = {
             ..._options,
         }
-        consoleInfo('The Router Initialized')
+        if (!this._options.silent) {
+            consoleInfo('The Router Initialized')
+        }
         const cacheOpts = {
             limit: _options?.cacheLimit || 0,
         }
