@@ -23,7 +23,7 @@ type TProstoRouterCache = {
 export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
     protected readonly _options: TProstoRouterOptions
 
-    protected cache: TProstoRouterCache
+    protected cache?: TProstoRouterCache
 
     constructor(_options?: Partial<TProstoRouterOptions>) {
         this._options = {
@@ -33,28 +33,32 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         const cacheOpts = {
             limit: _options?.cacheLimit || 0,
         }
-        this.cache = {
-            GET: new ProstoCache<TProstoLookupResult>(cacheOpts),
-            PUT: new ProstoCache<TProstoLookupResult>(cacheOpts),
-            POST: new ProstoCache<TProstoLookupResult>(cacheOpts),
-            PATCH: new ProstoCache<TProstoLookupResult>(cacheOpts),
-            DELETE: new ProstoCache<TProstoLookupResult>(cacheOpts),
-            HEAD: new ProstoCache<TProstoLookupResult>(cacheOpts),
-            OPTIONS: new ProstoCache<TProstoLookupResult>(cacheOpts),
+        if (_options?.cacheLimit) {
+            this.cache = {
+                GET: new ProstoCache<TProstoLookupResult>(cacheOpts),
+                PUT: new ProstoCache<TProstoLookupResult>(cacheOpts),
+                POST: new ProstoCache<TProstoLookupResult>(cacheOpts),
+                PATCH: new ProstoCache<TProstoLookupResult>(cacheOpts),
+                DELETE: new ProstoCache<TProstoLookupResult>(cacheOpts),
+                HEAD: new ProstoCache<TProstoLookupResult>(cacheOpts),
+                OPTIONS: new ProstoCache<TProstoLookupResult>(cacheOpts),
+            }
         }
     }
 
     protected refreshCache(method: THttpMethod | '*') {
-        if (method === '*') {
-            this.cache.GET.reset()
-            this.cache.PUT.reset()
-            this.cache.POST.reset()
-            this.cache.PATCH.reset()
-            this.cache.DELETE.reset()
-            this.cache.HEAD.reset()
-            this.cache.OPTIONS.reset()
-        } else {
-            this.cache[method].reset()
+        if (this._options.cacheLimit && this.cache) {
+            if (method === '*') {
+                this.cache.GET.reset()
+                this.cache.PUT.reset()
+                this.cache.POST.reset()
+                this.cache.PATCH.reset()
+                this.cache.DELETE.reset()
+                this.cache.HEAD.reset()
+                this.cache.OPTIONS.reset()
+            } else if (this.cache && this.cache[method]) {
+                this.cache[method].reset()
+            }
         }
     }
 
@@ -186,7 +190,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
         //     this.logger.debug('Lookup route ' + method + ': ' + path)
         // }
-        if (this._options.cacheLimit) {
+        if (this._options.cacheLimit && this.cache && this.cache[method]) {
             const cached = this.cache[method].get(path) as TProstoLookupResult<HandlerType>
             if (cached) return cached
         }
@@ -200,7 +204,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
             //     this.logger.debug('Route found  ' + method + ': ' + lookupResult.route.path, lookupResult.ctx.params)
             // }
-            if (this._options.cacheLimit) {
+            if (this._options.cacheLimit && this.cache && this.cache[method]) {
                 this.cache[method].set(path, result)
             }
             return result

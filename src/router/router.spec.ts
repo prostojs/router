@@ -102,7 +102,7 @@ function testPath(router: ProstoRouter<TTestHandler>, method: THttpMethod, path:
     if (params) {
         expect(Object.keys(found.ctx.params).length).toEqual(Object.keys(params).length)
         Object.keys(params).forEach(key => {
-            expect(found.ctx.params).toHaveProperty(key)
+            // expect(found.ctx.params).toHaveProperty(key)
             expect(found.ctx.params[key]).toEqual(params[key])
         })
     }
@@ -349,7 +349,8 @@ describe('ProstoRouter must process empty (root) path', () => {
 
 describe('ProstoRouter wildcard + params', () => {
     router.get('/staticcss/*/styles/:filename.css', () => 'ok')
+    router.toTree()
     it('must resolve wildcard + params path', () => {
-        testPath(router, 'GET', '/staticcss/1/2/3/styles/style.css', 'ok')
+        testPath(router, 'GET', '/staticcss/1/2/3/styles/style.css', 'ok', { '*': '1/2/3', 'filename.css': 'style.css' })
     })
 })
