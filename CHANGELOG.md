@@ -1,3 +1,12 @@
+## [0.0.16](https://github.com/prostojs/router/compare/v0.0.15...v0.0.16) (2022-11-23)
+
+
+### Features
+
+* add silent to options ([f6c20c3](https://github.com/prostojs/router/commit/f6c20c3af82a6e3b95b355199252dc782939213f))
+
+
+
 ## [0.0.15](https://github.com/prostojs/router/compare/v0.0.14...v0.0.15) (2022-11-23)
 
 
