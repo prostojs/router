@@ -5,6 +5,12 @@
   "main": "index.js",
   "module": "dist/router.esm-bundler.js",
   "types": "dist/router.d.ts",
+  "exports": {
+    "types": "./dist/router.d.ts",
+    "default": "./index.js",
+    "import": "./dist/router.esm-bundler.js",
+    "require": "./index.js"
+  },
   "files": [
     "index.js",
     "dist"
