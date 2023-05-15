@@ -7,6 +7,7 @@ const segments: (TParsedSegmentStatic | TParsedSegmentParametric)[] = [
         value: 'static',
     }, {
         type: EPathSegmentType.VARIABLE,
+        name: 'key',
         value: 'key',
         regex: '([^\\/]*)',
     }, {
@@ -14,6 +15,7 @@ const segments: (TParsedSegmentStatic | TParsedSegmentParametric)[] = [
         value: '-',
     }, {
         type: EPathSegmentType.WILDCARD,
+        name: '*',
         value: '*',
         regex: '(.*)',
     },
@@ -23,6 +25,7 @@ const segmentsMulti: (TParsedSegmentStatic | TParsedSegmentParametric)[] = [
     {
         type: EPathSegmentType.VARIABLE,
         value: 'key',
+        name: 'key',
         regex: '([^\\/]*)',
     }, {
         type: EPathSegmentType.STATIC,
@@ -30,6 +33,7 @@ const segmentsMulti: (TParsedSegmentStatic | TParsedSegmentParametric)[] = [
     }, {
         type: EPathSegmentType.VARIABLE,
         value: 'key',
+        name: 'key',
         regex: '([^\\/]*)',
     }, {
         type: EPathSegmentType.STATIC,
@@ -37,6 +41,7 @@ const segmentsMulti: (TParsedSegmentStatic | TParsedSegmentParametric)[] = [
     }, {
         type: EPathSegmentType.WILDCARD,
         value: '*',
+        name: '*',
         regex: '(.*)',
     }, {
         type: EPathSegmentType.STATIC,
@@ -44,6 +49,7 @@ const segmentsMulti: (TParsedSegmentStatic | TParsedSegmentParametric)[] = [
     }, {
         type: EPathSegmentType.WILDCARD,
         value: '*',
+        name: '*',
         regex: '(.*)',
     },
 ]
