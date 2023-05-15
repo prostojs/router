@@ -1,7 +1,7 @@
 export * from './router.types'
 import { ProstoCache } from '@prostojs/cache'
 import { parsePath } from '../parser'
-import { EPathSegmentType } from '../parser/p-types'
+import { EPathSegmentType, TParsedSegmentParametric } from '../parser/p-types'
 import { safeDecodeURI, safeDecodeURIComponent } from '../utils/decode'
 import { countOfSlashes } from '../utils/strings'
 import { generateFullMatchFunc, generatePathBuilder } from './match-utils'
@@ -10,6 +10,7 @@ import { THttpMethod, TProstoRouteHandler, TProstoRouterMainIndex, TProstoRoute,
     TProstoRouterMethodIndex, TProstoLookupResult, TProstoRouterOptions, TProstoRouteOptions } from './router.types'
 import { ProstoTree } from '@prostojs/tree'
 import { banner } from '../utils/banner'
+import { TProstoRouteMatchFunc } from './router.types'
 
 const methods: THttpMethod[] = ['GET', 'PUT', 'POST', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
 
@@ -75,7 +76,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         path: string,
         options: TProstoRouteOptions,
         handler: HandlerType
-    ): TProstoRouterPathBuilder<ParamsType> {
+    ): TProstoRouterPathHandle<ParamsType> {
         // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
         //     this.logger.debug('Register route ' + method + ': ' + path)
         // }
@@ -163,7 +164,16 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 }
             }
         }
-        return route.pathBuilder as unknown as TProstoRouterPathBuilder<ParamsType>
+        return {
+            getPath: route.pathBuilder,
+            getArgs: () => route.segments.filter(p => p.type === EPathSegmentType.VARIABLE || p.type === EPathSegmentType.WILDCARD).map(s => (s as TParsedSegmentParametric).name),
+            getStaticPart: () => route.firstStatic,
+            test: route.fullMatch,
+            isStatic: route.isStatic,
+            isParametric: route.isParametric,
+            isWildcard: route.isWildcard,
+            generalized,
+        }
     }
 
     protected mergeOptions(options: TProstoRouteOptions): TProstoRouteOptions {
@@ -254,7 +264,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         path: string,
         options: TProstoRouteOptions | HandlerType,
         handler?: HandlerType
-    ): TProstoRouterPathBuilder<ParamsType> {
+    ): TProstoRouterPathHandle<ParamsType> {
         const { opts, func } = extractOptionsAndHandler<HandlerType>(options, handler)
         if (method === '*') {
             return methods.map(m => this.registerRoute<ParamsType, HandlerType>(m, path, opts, func))[0]
@@ -411,4 +421,52 @@ function consoleWarn(v: string) {
 
 function consoleInfo(v: string) {
     console.info(__DYE_GREEN__ + __DYE_DIM__ + banner() + v + __DYE_COLOR_OFF__ + __DYE_DIM_OFF__)
+}
+
+export interface TProstoRouterPathHandle<ParamsType = TProstoParamsType> {
+    /**
+     * Path builder for the route
+     * @param args - arguments of the path
+     * @return string
+     */
+    getPath: TProstoRouterPathBuilder<ParamsType>
+
+    /**
+     * Provides static part of the path (before first var)
+     * @returns string
+     */
+    getStaticPart: () => string
+
+    /**
+     * Provides a list of variables names in the path
+     * @returns string[]
+     */
+    getArgs: () => string[]
+
+    /**
+     * Regex test the path to match
+     * @param path - string path
+     * @returns boolean
+     */
+    test: TProstoRouteMatchFunc<ParamsType>
+
+    /**
+     * true if the path is fully static
+     */
+    isStatic: boolean
+
+    /**
+     * true if the path has variables
+     */
+    isParametric: boolean
+
+    /**
+     * true if the path has widlcard(s)
+     */
+    isWildcard: boolean
+
+    /**
+     * a string with generalized path
+     */
+    generalized: string
 }

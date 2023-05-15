@@ -150,34 +150,49 @@ describe('ProstoRouter', () => {
     it('must return proper path builder', () => {
         expect(
             router.get('/static/path1',
-                () => {})({})
+                () => {}).getPath({})
         )
             .toEqual('/static/path1')
         expect(
             router.get('/parametric/path/:var',
-                () => {})({ var: 'test' })
+                () => {}).getPath({ var: 'test' })
         )
             .toEqual('/parametric/path/test')
         expect(
             router.get('/parametric/path/:var/:var2',
-                () => {})({ var: 'test', var2: 'test2' })
+                () => {}).getPath({ var: 'test', var2: 'test2' })
         )
             .toEqual('/parametric/path/test/test2')
         expect(
             router.get('/parametric/:name/:name/:name',
-                () => {})({ name: ['n1', 'n2', 'n3'] })
+                () => {}).getPath({ name: ['n1', 'n2', 'n3'] })
         )
             .toEqual('/parametric/n1/n2/n3')
         expect(
             router.get('/wild/*',
-                () => {})({ '*': 'wild-var' })
+                () => {}).getPath({ '*': 'wild-var' })
         )
             .toEqual('/wild/wild-var')
         expect(
             router.get('/wild/*/more/*',
-                () => {})({ '*': ['wild-var', 'moremore'] })
+                () => {}).getPath({ '*': ['wild-var', 'moremore'] })
         )
             .toEqual('/wild/wild-var/more/moremore')
+    })
+
+    it('must return proper path handle', () => {
+        const h1 = router.get('/parametric/path/:var(\\d)', () => { })
+        const { getPath: pathBuilder } = h1
+        expect(pathBuilder({ var: '2' })).toEqual('/parametric/path/2')
+        expect(h1.getStaticPart()).toEqual('/parametric/path/')
+        expect(h1.getArgs()).toEqual(['var'])
+        expect(h1.isParametric).toEqual(true)
+        expect(h1.generalized).toEqual('GET:/parametric/path/<VAR(\\d)>')
+
+        const h2 = router.get('/parametric/path/:var1-:var2/*', () => { })
+        expect(h2.getStaticPart()).toEqual('/parametric/path/')
+        expect(h2.getArgs()).toEqual(['var1', 'var2', '*'])
+        expect(h2.isWildcard).toEqual(true)
     })
 })
 

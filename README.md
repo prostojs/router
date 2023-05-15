@@ -263,23 +263,23 @@ router.all('/api/path', () => 'ok')
 ### Path builders
 When you define a new route you receive a path builder for it
 ```js
-const pathBuilder = router.get('/api/path', () => 'ok')
+const { getPath: pathBuilder } = router.get('/api/path', () => 'ok')
 console.log(pathBuilder())
 // /api/path
 
-const userPathBuilder = router.get('/api/user/:name', () => 'ok')
+const { getPath: userPathBuilder } = router.get('/api/user/:name', () => 'ok')
 console.log(userPathBuilder({
     name: 'John'
 }))
 // /api/user/John
 
-const wildcardBuilder = router.get('/static/*', () => 'ok')
+const { getPath: wildcardBuilder } = router.get('/static/*', () => 'ok')
 console.log(wildcardBuilder({
     '*': 'index.html'
 }))
 // /static/index.html
 
-const multiParamsBuilder = router.get('/api/asset/:type/:type/:id', () => 'ok')
+const { getPath: multiParamsBuilder } = router.get('/api/asset/:type/:type/:id', () => 'ok')
 console.log(userPathBuilder({
     type: ['CJ', 'REV'],
     id: '443551'
@@ -293,7 +293,7 @@ interface MyParamsType = {
     name: string
 }
 
-const userPathBuilder = router.get<MyParamsType>('/api/user/:name', () => 'ok')
+const { getPath: userPathBuilder } = router.get<MyParamsType>('/api/user/:name', () => 'ok')
 
 console.log(userPathBuilder({
     name: 'John'

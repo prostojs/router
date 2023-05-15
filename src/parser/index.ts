@@ -27,7 +27,8 @@ class ParametricNodeWithRegex extends BasicNode<TParsedSegmentParametric> {
             mapRule: ({ content }) => content.join('').replace(/^\(\^/, '(').replace(/\$\)$/, ')'),
         }
 
-        this.mapContent('value', content => content.shift())
+        this.mapContent('name', 'join')
+            .mapContent('value', content => content.shift())
             .popsAtEOFSource(true)
             .addRecognizes(rgNode)
             .addPopsAfterNode(rgNode)
@@ -53,13 +54,13 @@ const paramNode = new ParametricNodeWithRegex({
     tokens: [':', /[\/\-]/],
     tokenOE: 'omit-eject',
     backSlash: 'ignore-',
-}, regexNode).initCustomData(() => ({ type: EPathSegmentType.VARIABLE, value: '', regex: '([^\\/]*)' }))
+}, regexNode).initCustomData(() => ({ type: EPathSegmentType.VARIABLE, value: '', regex: '([^\\/]*)', name: '' }))
 
 const wildcardNode = new ParametricNodeWithRegex({
     label: 'Wildcard',
     tokens: ['*', /[^*\()]/],
     tokenOE: '-eject',
-}, regexNode).initCustomData(() => ({ type: EPathSegmentType.WILDCARD, value: '*', regex: '(.*)' }))
+}, regexNode).initCustomData(() => ({ type: EPathSegmentType.WILDCARD, value: '*', regex: '(.*)', name: '' }))
 
 const staticNode = new BasicNode<TParsedSegment>({
     label: 'Static',
