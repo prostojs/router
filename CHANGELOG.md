@@ -1,3 +1,17 @@
+# [0.1.0](https://github.com/prostojs/router/compare/v0.0.16...v0.1.0) (2023-05-15)
+
+
+### Bug Fixes
+
+* fix test ([d5ae378](https://github.com/prostojs/router/commit/d5ae3787aee3a4e62b267d0eb2b911692345e4e5))
+
+
+### Features
+
+* add more options for path handle ([323f6a7](https://github.com/prostojs/router/commit/323f6a70d7ecbff57baf07cca2dd6b641454eaf7))
+
+
+
 ## [0.0.16](https://github.com/prostojs/router/compare/v0.0.15...v0.0.16) (2022-11-23)
 
 
