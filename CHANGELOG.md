@@ -1,3 +1,12 @@
+## [0.1.1](https://github.com/prostojs/router/compare/v0.1.0...v0.1.1) (2023-06-07)
+
+
+### Features
+
+* add optional ignoreTrailingSlash on lookup ([27077ff](https://github.com/prostojs/router/commit/27077ff041d88aa1facf83fbcca261fbbe100fa5))
+
+
+
 # [0.1.0](https://github.com/prostojs/router/compare/v0.0.16...v0.1.0) (2023-05-15)
 
 
