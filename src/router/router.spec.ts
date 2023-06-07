@@ -22,6 +22,8 @@ const parametricRoutes = [
     { r: '/Static2/*/subfolder/*.exe', check: '/Static2/f1/subfolder/file.exe', params: { '*': ['f1', 'file'] } },
     { r: '/names/:name/:name/:name', check: '/names/John/Samatha/Doe', params: { 'name': ['John', 'Samatha', 'Doe'] } },
     { r: '/widlcard/*(\\d+)', check: '/widlcard/123456', params: { '*': '123456' } },
+
+    { r: '/nested\\:run/:name', check: '/nested:run/name1', params: { 'name': 'name1' } },
 ]
 const trickyRoutes = [
     '/api/users/award_winners',

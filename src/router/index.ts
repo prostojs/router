@@ -182,10 +182,10 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         }
     }
 
-    protected sanitizePath(path: string) {
+    protected sanitizePath(path: string, ignoreTrailingSlash?: boolean) {
         const end = path.indexOf('?')
         let slicedPath = end >= 0 ? path.slice(0, end) : path
-        if (this._options.ignoreTrailingSlash && slicedPath[slicedPath.length - 1] === '/') {
+        if ((ignoreTrailingSlash || this._options.ignoreTrailingSlash) && slicedPath[slicedPath.length - 1] === '/') {
             slicedPath = slicedPath.slice(0, slicedPath.length - 1)
         }
         const normalPath = safeDecodeURI(
@@ -198,7 +198,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         }
     }
 
-    public lookup<HandlerType = BaseHandlerType>(method: THttpMethod, path: string): TProstoLookupResult<HandlerType> | void {
+    public lookup<HandlerType = BaseHandlerType>(method: THttpMethod, path: string, ignoreTrailingSlash?: boolean): TProstoLookupResult<HandlerType> | void {
         // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
         //     this.logger.debug('Lookup route ' + method + ': ' + path)
         // }
@@ -206,7 +206,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             const cached = this.cache[method].get(path) as TProstoLookupResult<HandlerType>
             if (cached) return cached
         }
-        const { normalPath, normalPathWithCase } = this.sanitizePath(path)
+        const { normalPath, normalPathWithCase } = this.sanitizePath(path, ignoreTrailingSlash)
         const rootMethod = this.root[method]
         const lookupResult: TProstoLookupResult<HandlerType> = {
             route: null as unknown as TProstoRoute<HandlerType>,
