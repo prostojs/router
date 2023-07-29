@@ -1,3 +1,12 @@
+# [0.2.0](https://github.com/prostojs/router/compare/v0.1.1...v0.2.0) (2023-07-29)
+
+
+### Features
+
+* add optional params support ([da3c2c3](https://github.com/prostojs/router/commit/da3c2c3152d41ef8556bdf01b684856b1d3427b5))
+
+
+
 ## [0.1.1](https://github.com/prostojs/router/compare/v0.1.0...v0.1.1) (2023-06-07)
 
 
