@@ -14,6 +14,7 @@ export interface TParsedSegmentParametric extends TParsedSegmentAny {
     type: EPathSegmentType.VARIABLE | EPathSegmentType.WILDCARD
     name: string
     regex: string
+    optional?: boolean
 }
 
 export interface TParsedSegmentStatic extends TParsedSegmentAny { 

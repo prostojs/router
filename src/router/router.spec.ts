@@ -24,6 +24,9 @@ const parametricRoutes = [
     { r: '/widlcard/*(\\d+)', check: '/widlcard/123456', params: { '*': '123456' } },
 
     { r: '/nested\\:run/:name', check: '/nested:run/name1', params: { 'name': 'name1' } },
+
+    // optional
+    { r: '/start/:v1?/:v2?/:v3?', check: '/start/1/2/3', params: { 'v1': '1', 'v2': '2', 'v3': '3' } },
 ]
 const trickyRoutes = [
     '/api/users/award_winners',
@@ -97,7 +100,7 @@ type TTestHandler = (ctx: TProstoLookupContext) => void
 function callHandler(found: TProstoLookupResult<TTestHandler>) {
     return found.route.handlers[0](found.ctx)
 }
-function testPath(router: ProstoRouter<TTestHandler>, method: THttpMethod, path: string, correct: string, params?: Record<string, string | string[]>) {
+function testPath(router: ProstoRouter<TTestHandler>, method: THttpMethod, path: string, correct: string, params?: Record<string, string | string[] | undefined>) {
     const found = router.find(method, path) as TProstoLookupResult<TTestHandler>
     expect(found).toBeDefined()
     expect(callHandler(found)).toEqual(correct)
@@ -369,5 +372,17 @@ describe('ProstoRouter wildcard + params', () => {
     router.toTree()
     it('must resolve wildcard + params path', () => {
         testPath(router, 'GET', '/staticcss/1/2/3/styles/style.css', 'ok', { '*': '1/2/3', 'filename.css': 'style.css' })
+    })
+})
+
+describe('ProstoRouter optional params', () => {
+    const reg = router.get('/optional/:v1?/:v2?/:v3?', () => 'ok -> optional')
+    console.log(reg)
+    router.toTree()
+    it('must resolve wildcard + params path', () => {
+        testPath(router, 'GET', '/optional/1/2/3', 'ok -> optional', { 'v1': '1', 'v2': '2', 'v3': '3' })
+        testPath(router, 'GET', '/optional/1/2', 'ok -> optional', { 'v1': '1', 'v2': '2', 'v3': undefined })
+        testPath(router, 'GET', '/optional/1/', 'ok -> optional', { 'v1': '1', 'v2': undefined, 'v3': undefined })
+        testPath(router, 'GET', '/optional/', 'ok -> optional', { 'v1': undefined, 'v2': undefined, 'v3': undefined })
     })
 })

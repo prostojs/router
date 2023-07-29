@@ -125,8 +125,10 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         } else {
             const isStatic = segments.length === 1 && segments[0].type === EPathSegmentType.STATIC || segments.length === 0
             const isParametric = !!segments.find(p => p.type === EPathSegmentType.VARIABLE)
+            const firstOptional = segments.findIndex(p => (p as TParsedSegmentParametric).optional)
+            const isOptional = firstOptional >= 0
             const isWildcard = !!segments.find(p => p.type === EPathSegmentType.WILDCARD)
-            const lengths = segments.map(s => s.type === EPathSegmentType.STATIC ? s.value.length : 0)
+            const lengths = segments.slice(0, firstOptional >= 0 ? firstOptional : undefined).map(s => s.type === EPathSegmentType.STATIC ? s.value.length : 0)
             const normalPathCase = segments[0] ? (this._options.ignoreCase ? segments[0].value.toLowerCase() : segments[0].value) : '/'
             this.routesRegistry[generalized] = route = {
                 method,
@@ -135,6 +137,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 handlers: [handler],
                 isStatic,
                 isParametric,
+                isOptional,
                 isWildcard,
                 segments,
                 lengths,
@@ -151,14 +154,14 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 rootMethod.statics[normalPathCase] = route as TProstoRoute<unknown, unknown>
             } else {
                 // dynamic
-                if (route.isParametric && !route.isWildcard) {
+                if (route.isParametric && !route.isWildcard && !route.isOptional) {
                     const countOfParts = route.segments
                         .filter(s => s.type === EPathSegmentType.STATIC)
                         .map(s => countOfSlashes(s.value)).reduce((a, b) => a + b, 1)  
                     const byParts = rootMethod.parametrics.byParts[countOfParts] = rootMethod.parametrics.byParts[countOfParts] || []
                     byParts.push(route as TProstoRoute<unknown, unknown>)
                     rootMethod.parametrics.byParts[countOfParts] = byParts.sort(routeSorter)
-                } else if (route.isWildcard) {
+                } else if (route.isWildcard || route.isOptional) {
                     rootMethod.wildcards.push(route as TProstoRoute<unknown, unknown>)
                     rootMethod.wildcards = rootMethod.wildcards.sort(routeSorter)
                 }
@@ -353,9 +356,10 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             let cur: TreeData = data
             let last = ''
             route.segments.forEach(s => {
+                let parts
                 switch (s.type) {
                     case EPathSegmentType.STATIC:
-                        const parts = s.value.split('/')
+                        parts = s.value.split('/')
                         last += parts.shift()
                         for (let i = 0; i < parts.length; i++) {
                             if (last) {

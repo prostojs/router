@@ -1,6 +1,7 @@
 import { 
     BasicNode,
     TBasicNodeOptions,
+    TPorstoParserCallbackData,
     TProstoParserHoistOptions,
 } from '@prostojs/parser'
 
@@ -33,6 +34,17 @@ class ParametricNodeWithRegex extends BasicNode<TParsedSegmentParametric> {
             .addRecognizes(rgNode)
             .addPopsAfterNode(rgNode)
             .addHoistChildren(hoistRegex)
+    }
+
+    beforeOnPop(data: TPorstoParserCallbackData<TParsedSegmentParametric>): void {
+        if (data.customData.name.endsWith('?')) {
+            data.customData.name = data.customData.name.slice(0, -1)
+            data.customData.value = data.customData.name
+            data.customData.optional = true
+        } else if (data.parserContext.here[0] === '?') {
+            data.customData.optional = true
+            data.parserContext.jump()
+        }
     }
 }
 

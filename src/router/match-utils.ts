@@ -6,14 +6,28 @@ import { TProstoRouteMatchFunc } from './router.types'
 
 export function generateFullMatchRegex(segments: TParsedSegment[], nonCapturing = false): string {
     let regex = ''
+    let optional = false
     segments.forEach(segment => {
         switch (segment.type) {
-            case EPathSegmentType.STATIC: 
-                regex += escapeRegex(segment.value)
+            case EPathSegmentType.STATIC:
+                if (optional) {
+                    if (['-', '/'].includes(segment.value)) {
+                        regex += escapeRegex(segment.value) + '?'
+                    } else {
+                        throw new Error(`Static route segment "${ segment.value }" is not allowed after optional parameters.`)
+                    }
+                } else {
+                    regex += escapeRegex(segment.value)
+                }
                 break
             case EPathSegmentType.VARIABLE:
             case EPathSegmentType.WILDCARD:
                 regex += nonCapturing ? segment.regex.replace(/^\(/, '(?:') : segment.regex
+                if (optional && !segment.optional) throw new Error('Obligatory route parameters are not allowed after optional parameters. Use "?" to mark it as an optional route parameter.')
+                if (segment.optional) {
+                    optional = true
+                    regex += '?'
+                }
         }
     })
     return regex

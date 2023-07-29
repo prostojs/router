@@ -17,6 +17,7 @@ export interface TProstoRoute<HandlerType = TProstoRouteHandler, ParamsType = TP
     handlers: HandlerType[]
     isStatic: boolean
     isParametric: boolean
+    isOptional: boolean
     isWildcard: boolean
     segments: TParsedSegment[]
     generalized: string

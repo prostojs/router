@@ -7,11 +7,11 @@ function safeDecode(f: (s: string) => string, v: string): string {
 }
 
 export function safeDecodeURIComponent(uri: string): string {
-    if (uri.indexOf('%') < 0) return uri
+    if (!uri || uri.indexOf('%') < 0) return uri
     return safeDecode(decodeURIComponent, uri)
 }
 
 export function safeDecodeURI(uri: string): string {
-    if (uri.indexOf('%') < 0) return uri
+    if (!uri || uri.indexOf('%') < 0) return uri
     return safeDecode(decodeURI, uri)
 }
