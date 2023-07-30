@@ -32,7 +32,7 @@ describe('match-utils->generateFullMatchRegex', () => {
     })
     it('must generate Full Match Regex for optional vars', () => {
         expect(generateFullMatchRegex(segmentsOptional)).toEqual('([^\\/]*)\\-([^\\/]*)\\-([^\\/]*)?\\-?(.*)?\\/?([^\\/]*)?')
-        expect(generateFullMatchRegex(segmentsOptional2)).toEqual('\\/start\\/([^\\/]*)?\\/?([^\\/]*)?\\/?([^-]*)?\\-?([^\\/]*)?')
+        expect(generateFullMatchRegex(segmentsOptional2)).toEqual('\\/start\\/?([^\\/]*)?\\/?([^\\/]*)?\\/?([^-]*)?\\-?([^\\/]*)?')
     })
 })
 

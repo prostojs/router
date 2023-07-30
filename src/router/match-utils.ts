@@ -22,8 +22,13 @@ export function generateFullMatchRegex(segments: TParsedSegment[], nonCapturing 
                 break
             case EPathSegmentType.VARIABLE:
             case EPathSegmentType.WILDCARD:
-                regex += nonCapturing ? segment.regex.replace(/^\(/, '(?:') : segment.regex
                 if (optional && !segment.optional) throw new Error('Obligatory route parameters are not allowed after optional parameters. Use "?" to mark it as an optional route parameter.')
+                if (segment.optional && !optional) {
+                    if (regex.endsWith('/')) {
+                        regex += '?'
+                    }
+                }
+                regex += nonCapturing ? segment.regex.replace(/^\(/, '(?:') : segment.regex
                 if (segment.optional) {
                     optional = true
                     regex += '?'

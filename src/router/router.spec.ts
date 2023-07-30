@@ -384,5 +384,6 @@ describe('ProstoRouter optional params', () => {
         testPath(router, 'GET', '/optional/1/2', 'ok -> optional', { 'v1': '1', 'v2': '2', 'v3': undefined })
         testPath(router, 'GET', '/optional/1/', 'ok -> optional', { 'v1': '1', 'v2': undefined, 'v3': undefined })
         testPath(router, 'GET', '/optional/', 'ok -> optional', { 'v1': undefined, 'v2': undefined, 'v3': undefined })
+        testPath(router, 'GET', '/optional', 'ok -> optional', { 'v1': undefined, 'v2': undefined, 'v3': undefined })
     })
 })

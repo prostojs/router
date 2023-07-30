@@ -162,6 +162,11 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                     byParts.push(route as TProstoRoute<unknown, unknown>)
                     rootMethod.parametrics.byParts[countOfParts] = byParts.sort(routeSorter)
                 } else if (route.isWildcard || route.isOptional) {
+                    if (route.isOptional && route.firstStatic.endsWith('/')) {
+                        route.firstStatic = route.firstStatic.slice(0, -1)
+                        route.firstLength--
+                        route.minLength = Math.min(route.minLength, route.firstLength)
+                    }
                     rootMethod.wildcards.push(route as TProstoRoute<unknown, unknown>)
                     rootMethod.wildcards = rootMethod.wildcards.sort(routeSorter)
                 }
