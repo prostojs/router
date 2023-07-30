@@ -1,3 +1,12 @@
+## [0.2.1](https://github.com/prostojs/router/compare/v0.2.0...v0.2.1) (2023-07-30)
+
+
+### Bug Fixes
+
+* ignore trailing slash before optional params ([8492e9e](https://github.com/prostojs/router/commit/8492e9e93c3ca2342aee64aef25b753c853640eb))
+
+
+
 # [0.2.0](https://github.com/prostojs/router/compare/v0.1.1...v0.2.0) (2023-07-29)
 
 
