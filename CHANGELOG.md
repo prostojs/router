@@ -1,3 +1,12 @@
+## [0.3.1](https://github.com/prostojs/router/compare/v0.3.0...v0.3.1) (2026-02-23)
+
+
+### Performance Improvements
+
+* optimizations ([41b9e92](https://github.com/prostojs/router/commit/41b9e920842a74528bf726540bfbd270dbea382e))
+
+
+
 # [0.3.0](https://github.com/prostojs/router/compare/v0.2.1...v0.3.0) (2026-02-23)
 
 
