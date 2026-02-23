@@ -1,32 +1,74 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-empty-function */
+import { describe, it, expect, vi } from 'vitest'
 import { ProstoRouter, THttpMethod, TProstoLookupResult } from '.'
 import { TProstoLookupContext } from '..'
 
 const router = new ProstoRouter<TTestHandler>()
-const basicRoutes = [
-    '/apiRoot',
-    '/apiRoot/nested',
-]
+const basicRoutes = ['/apiRoot', '/apiRoot/nested']
 const parametricRoutes = [
-    // ignore case 
-    { r: '/api/user/:userName', check: '/api/user/JOHN', params: { userName: 'JOHN' } },
-    { r: '/api/User/:userName/:type', check: '/api/User/JOHN/COMMON', params: { userName: 'JOHN', type: 'COMMON' } },
-    { r: '/api/user/:userName-:type', check: '/api/user/ADAM-COMMON2?query=1234', params: { userName: 'ADAM', type: 'COMMON2' } },
+    // ignore case
+    {
+        r: '/api/user/:userName',
+        check: '/api/user/JOHN',
+        params: { userName: 'JOHN' },
+    },
+    {
+        r: '/api/User/:userName/:type',
+        check: '/api/User/JOHN/COMMON',
+        params: { userName: 'JOHN', type: 'COMMON' },
+    },
+    {
+        r: '/api/user/:userName-:type',
+        check: '/api/user/ADAM-COMMON2?query=1234',
+        params: { userName: 'ADAM', type: 'COMMON2' },
+    },
     // others
-    { r: '/api/time/:h(\\d{2})\\::m(\\d{2})', check: '/api/time/12:44', params: { h: '12', m: '44' } },
+    {
+        r: '/api/time/:h(\\d{2})\\::m(\\d{2})',
+        check: '/api/time/12:44',
+        params: { h: '12', m: '44' },
+    },
     { r: '/api/colon\\:path', check: '/api/colon:path', params: {} },
-    { r: '/static/*', check: '/static/any-folder/any-file.md', params: { '*': 'any-folder/any-file.md' } },
-    { r: '/static/*.js', check: '/static/only-js-folder/some-file.js', params: { '*': 'only-js-folder/some-file' } },
-    { r: '/Static2/*/subfolder/*.exe', check: '/Static2/f1/subfolder/file.exe', params: { '*': ['f1', 'file'] } },
-    { r: '/names/:name/:name/:name', check: '/names/John/Samatha/Doe', params: { 'name': ['John', 'Samatha', 'Doe'] } },
-    { r: '/widlcard/*(\\d+)', check: '/widlcard/123456', params: { '*': '123456' } },
+    {
+        r: '/static/*',
+        check: '/static/any-folder/any-file.md',
+        params: { '*': 'any-folder/any-file.md' },
+    },
+    {
+        r: '/static/*.js',
+        check: '/static/only-js-folder/some-file.js',
+        params: { '*': 'only-js-folder/some-file' },
+    },
+    {
+        r: '/Static2/*/subfolder/*.exe',
+        check: '/Static2/f1/subfolder/file.exe',
+        params: { '*': ['f1', 'file'] },
+    },
+    {
+        r: '/names/:name/:name/:name',
+        check: '/names/John/Samatha/Doe',
+        params: { name: ['John', 'Samatha', 'Doe'] },
+    },
+    {
+        r: '/widlcard/*(\\d+)',
+        check: '/widlcard/123456',
+        params: { '*': '123456' },
+    },
 
-    { r: '/nested\\:run/:name', check: '/nested:run/name1', params: { 'name': 'name1' } },
+    {
+        r: '/nested\\:run/:name',
+        check: '/nested:run/name1',
+        params: { name: 'name1' },
+    },
 
     // optional
-    { r: '/start/:v1?/:v2?/:v3?', check: '/start/1/2/3', params: { 'v1': '1', 'v2': '2', 'v3': '3' } },
+    {
+        r: '/start/:v1?/:v2?/:v3?',
+        check: '/start/1/2/3',
+        params: { v1: '1', v2: '2', v3: '3' },
+    },
 ]
 const trickyRoutes = [
     '/api/users/award_winners',
@@ -44,21 +86,17 @@ const trickyRoutes = [
 const encodingCheck = [
     {
         r: '/[...]/a .md',
-        checks: [
-            '/[...]/a .md',
-            '/[...]/a%20.md',
-            '/%5B...%5D/a%20.md',
-        ],
-    }, {
+        checks: ['/[...]/a .md', '/[...]/a%20.md', '/%5B...%5D/a%20.md'],
+    },
+    {
         r: '/[...]/a%20.md',
-        checks: [
-            '/[...]/a%2520.md',
-            '/%5B...%5D/a%2520.md',
-        ],
-    }, {
+        checks: ['/[...]/a%2520.md', '/%5B...%5D/a%2520.md'],
+    },
+    {
         r: '/asset%2f123/test',
         checks: ['/asset%252f123/test'],
-    }, {
+    },
+    {
         r: '/house%2325',
         checks: ['/house%252325'],
     },
@@ -86,8 +124,16 @@ const trickyRoutesDoubleEncoding = [
     { r: '/2/:id/🍌', check: '/2/%2523/%F0%9F%8D%8C', params: { id: '%23' } },
 
     { r: '/test~123/:param', check: '/test~123/%25', params: { param: '%' } },
-    { r: '/2/test~123/:param', check: '/2/test%7E123/%2525', params: { param: '%25' } },
-    { r: '/3/test~123/:param', check: '/3/test~123/%2525', params: { param: '%25' } },
+    {
+        r: '/2/test~123/:param',
+        check: '/2/test%7E123/%2525',
+        params: { param: '%25' },
+    },
+    {
+        r: '/3/test~123/:param',
+        check: '/3/test~123/%2525',
+        params: { param: '%25' },
+    },
 
     { r: '/4/%2F/:param', check: '/4/%252F/%2F', params: { param: '/' } },
 
@@ -100,13 +146,21 @@ type TTestHandler = (ctx: TProstoLookupContext) => void
 function callHandler(found: TProstoLookupResult<TTestHandler>) {
     return found.route.handlers[0](found.ctx)
 }
-function testPath(router: ProstoRouter<TTestHandler>, method: THttpMethod, path: string, correct: string, params?: Record<string, string | string[] | undefined>) {
+function testPath(
+    router: ProstoRouter<TTestHandler>,
+    method: THttpMethod,
+    path: string,
+    correct: string,
+    params?: Record<string, string | string[] | undefined>,
+) {
     const found = router.find(method, path) as TProstoLookupResult<TTestHandler>
     expect(found).toBeDefined()
     expect(callHandler(found)).toEqual(correct)
     if (params) {
-        expect(Object.keys(found.ctx.params).length).toEqual(Object.keys(params).length)
-        Object.keys(params).forEach(key => {
+        expect(Object.keys(found.ctx.params).length).toEqual(
+            Object.keys(params).length,
+        )
+        Object.keys(params).forEach((key) => {
             // expect(found.ctx.params).toHaveProperty(key)
             expect(found.ctx.params[key]).toEqual(params[key])
         })
@@ -114,79 +168,89 @@ function testPath(router: ProstoRouter<TTestHandler>, method: THttpMethod, path:
 }
 
 describe('ProstoRouter', () => {
-    basicRoutes.forEach(r => router.get(r, () => r))
-    parametricRoutes.forEach(r => router.get(r.r, () => r.r))
-    trickyRoutes.forEach(r => router.get(r, () => r))
-    encodingCheck.forEach(r => router.get(r.r, () => r.r))
-    orderRoutes.forEach(r => router.get(r, () => r))
+    basicRoutes.forEach((r) => router.get(r, () => r))
+    parametricRoutes.forEach((r) => router.get(r.r, () => r.r))
+    trickyRoutes.forEach((r) => router.get(r, () => r))
+    encodingCheck.forEach((r) => router.get(r.r, () => r.r))
+    orderRoutes.forEach((r) => router.get(r, () => r))
 
-    basicRoutes.forEach(r => {
+    basicRoutes.forEach((r) => {
         it('must resolve basic ' + r, () => {
             testPath(router, 'GET', r, r)
         })
     })
 
-    parametricRoutes.forEach(r => {
-        it('must resolve parametric ' + r.check + ' -> ' + r.r + ' ' + JSON.stringify(r.params), () => {
-            testPath(router, 'GET', r.check, r.r, r.params as unknown as Record<string, string | string[]>)
-        })
+    parametricRoutes.forEach((r) => {
+        it(
+            'must resolve parametric ' +
+                r.check +
+                ' -> ' +
+                r.r +
+                ' ' +
+                JSON.stringify(r.params),
+            () => {
+                testPath(
+                    router,
+                    'GET',
+                    r.check,
+                    r.r,
+                    r.params as unknown as Record<string, string | string[]>,
+                )
+            },
+        )
     })
 
-    trickyRoutes.forEach(r => {
+    trickyRoutes.forEach((r) => {
         it('must resolve tricky ' + r, () => {
             testPath(router, 'GET', r, r)
         })
     })
 
-    encodingCheck.forEach(r => {
-        r.checks.forEach(c => {
+    encodingCheck.forEach((r) => {
+        r.checks.forEach((c) => {
             it('must resolve encoded ' + c + ' -> ' + r.r, () => {
                 testPath(router, 'GET', c, r.r)
             })
         })
     })
 
-    orderChecks.forEach(r => {
+    orderChecks.forEach((r) => {
         it('must be in correct order ' + r.check + ' -> ' + r.to, () => {
             testPath(router, 'GET', r.check, r.to)
         })
     })
 
     it('must return proper path builder', () => {
-        expect(
-            router.get('/static/path1',
-                () => {}).getPath({})
+        expect(router.get('/static/path1', () => {}).getPath({})).toEqual(
+            '/static/path1',
         )
-            .toEqual('/static/path1')
         expect(
-            router.get('/parametric/path/:var',
-                () => {}).getPath({ var: 'test' })
-        )
-            .toEqual('/parametric/path/test')
+            router
+                .get('/parametric/path/:var', () => {})
+                .getPath({ var: 'test' }),
+        ).toEqual('/parametric/path/test')
         expect(
-            router.get('/parametric/path/:var/:var2',
-                () => {}).getPath({ var: 'test', var2: 'test2' })
-        )
-            .toEqual('/parametric/path/test/test2')
+            router
+                .get('/parametric/path/:var/:var2', () => {})
+                .getPath({ var: 'test', var2: 'test2' }),
+        ).toEqual('/parametric/path/test/test2')
         expect(
-            router.get('/parametric/:name/:name/:name',
-                () => {}).getPath({ name: ['n1', 'n2', 'n3'] })
-        )
-            .toEqual('/parametric/n1/n2/n3')
+            router
+                .get('/parametric/:name/:name/:name', () => {})
+                .getPath({ name: ['n1', 'n2', 'n3'] }),
+        ).toEqual('/parametric/n1/n2/n3')
         expect(
-            router.get('/wild/*',
-                () => {}).getPath({ '*': 'wild-var' })
-        )
-            .toEqual('/wild/wild-var')
+            router.get('/wild/*', () => {}).getPath({ '*': 'wild-var' }),
+        ).toEqual('/wild/wild-var')
         expect(
-            router.get('/wild/*/more/*',
-                () => {}).getPath({ '*': ['wild-var', 'moremore'] })
-        )
-            .toEqual('/wild/wild-var/more/moremore')
+            router
+                .get('/wild/*/more/*', () => {})
+                .getPath({ '*': ['wild-var', 'moremore'] }),
+        ).toEqual('/wild/wild-var/more/moremore')
     })
 
     it('must return proper path handle', () => {
-        const h1 = router.get('/parametric/path/:var(\\d)', () => { })
+        const h1 = router.get('/parametric/path/:var(\\d)', () => {})
         const { getPath: pathBuilder } = h1
         expect(pathBuilder({ var: '2' })).toEqual('/parametric/path/2')
         expect(h1.getStaticPart()).toEqual('/parametric/path/')
@@ -194,7 +258,7 @@ describe('ProstoRouter', () => {
         expect(h1.isParametric).toEqual(true)
         expect(h1.generalized).toEqual('GET:/parametric/path/<VAR(\\d)>')
 
-        const h2 = router.get('/parametric/path/:var1-:var2/*', () => { })
+        const h2 = router.get('/parametric/path/:var1-:var2/*', () => {})
         expect(h2.getStaticPart()).toEqual('/parametric/path/')
         expect(h2.getArgs()).toEqual(['var1', 'var2', '*'])
         expect(h2.isWildcard).toEqual(true)
@@ -203,81 +267,107 @@ describe('ProstoRouter', () => {
 
 describe('ProstoRouter ignoreTrailingSlash', () => {
     const router = new ProstoRouter<TTestHandler>({ ignoreTrailingSlash: true })
-    basicRoutes.forEach(r => router.get(r, () => r))
-    parametricRoutes.forEach(r => router.get(r.r, () => r.r))
+    basicRoutes.forEach((r) => router.get(r, () => r))
+    parametricRoutes.forEach((r) => router.get(r.r, () => r.r))
 
-    basicRoutes.forEach(r => {
+    basicRoutes.forEach((r) => {
         it('must resolve basic ' + r + '/', () => {
             testPath(router, 'GET', r + '/', r)
         })
     })
 
-    parametricRoutes.forEach(r => {
-        it('must resolve parametric ' + r.check + '/ -> ' + r.r + ' ' + JSON.stringify(r.params), () => {
-            testPath(router, 'GET', r.check + '/', r.r, r.params as unknown as Record<string, string | string[]>)
-        })
+    parametricRoutes.forEach((r) => {
+        it(
+            'must resolve parametric ' +
+                r.check +
+                '/ -> ' +
+                r.r +
+                ' ' +
+                JSON.stringify(r.params),
+            () => {
+                testPath(
+                    router,
+                    'GET',
+                    r.check + '/',
+                    r.r,
+                    r.params as unknown as Record<string, string | string[]>,
+                )
+            },
+        )
     })
 })
 
 describe('ProstoRouter ignoreCase', () => {
     const router = new ProstoRouter<TTestHandler>({ ignoreCase: true })
-    basicRoutes.forEach(r => router.get(r, () => r))
-    parametricRoutes.forEach(r => router.get(r.r, () => r.r))
+    basicRoutes.forEach((r) => router.get(r, () => r))
+    parametricRoutes.forEach((r) => router.get(r.r, () => r.r))
 
-    basicRoutes.forEach(r => {
+    basicRoutes.forEach((r) => {
         it('must resolve basic ' + r.toUpperCase(), () => {
             testPath(router, 'GET', r.toUpperCase(), r)
         })
     })
 
-    parametricRoutes.slice(0, 3).forEach(r => {
-        it('must resolve parametric ' + r.check.toUpperCase() + ' -> ' + r.r + ' ' + JSON.stringify(r.params), () => {
-            testPath(router, 'GET', r.check.toUpperCase(), r.r, r.params as unknown as Record<string, string | string[]>)
-        })
+    parametricRoutes.slice(0, 3).forEach((r) => {
+        it(
+            'must resolve parametric ' +
+                r.check.toUpperCase() +
+                ' -> ' +
+                r.r +
+                ' ' +
+                JSON.stringify(r.params),
+            () => {
+                testPath(
+                    router,
+                    'GET',
+                    r.check.toUpperCase(),
+                    r.r,
+                    r.params as unknown as Record<string, string | string[]>,
+                )
+            },
+        )
     })
 })
 
 describe('ProstoRouter shortcuts get, put, post...', () => {
-    const methods = [
-        'get',
-        'put',
-        'post',
-        'patch',
-        'delete',
-        'head',
-        'options',
-    ]
+    const methods = ['get', 'put', 'post', 'patch', 'delete', 'head', 'options']
 
-    methods.forEach(m => {
+    methods.forEach((m) => {
         it('must call ' + m, () => {
             const router = new ProstoRouter()
             // @ts-ignore
-            const mock = jest.spyOn(router, 'registerRoute').mockImplementation(() => {})
+            const mock = vi
+                .spyOn(router, 'registerRoute')
+                .mockImplementation(() => {})
             const cb = () => 'ok'
             // @ts-ignore
             router[m]('/test', cb)
-    
+
             expect(mock).toHaveBeenCalledWith(m.toUpperCase(), '/test', {}, cb)
         })
     })
 
-    methods.forEach(m => {
+    methods.forEach((m) => {
         it('must call ' + m + ' with options', () => {
             const router = new ProstoRouter()
             // @ts-ignore
-            const mock = jest.spyOn(router, 'registerRoute').mockImplementation(() => {})
+            const mock = vi
+                .spyOn(router, 'registerRoute')
+                .mockImplementation(() => {})
             const cb = () => 'ok'
             // @ts-ignore
             router[m]('/test', {}, cb)
-    
+
             expect(mock).toHaveBeenCalledWith(m.toUpperCase(), '/test', {}, cb)
         })
     })
-    
+
     it('must call all', () => {
         const router = new ProstoRouter()
         // @ts-ignore
-        const mock = jest.spyOn(router, 'registerRoute').mockImplementation(() => {})
+        const mock = vi
+            .spyOn(router, 'registerRoute')
+            .mockImplementation(() => {})
         const cb = () => 'ok'
         // @ts-ignore
         router.all('/all', {}, cb)
@@ -342,21 +432,60 @@ describe('ProstoRouter decode url components (find-my-way/issues/234)', () => {
         const router = new ProstoRouter()
         const handler = () => {}
         router.get('/:param', handler)
-        
-        expect((router.find('GET', '/foo%23bar') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: 'foo#bar' })
-        expect((router.find('GET', '/%F0%9F%8D%8C') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: '🍌' })
-        expect((router.find('GET', '/%F0%9F%8D%8C-foo') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: '🍌-foo' })
-        expect((router.find('GET', '/%F0%9F%8D%8C-foo%23bar') as TProstoLookupResult<typeof handler>).ctx.params).toEqual({ param: '🍌-foo#bar' })
+
+        expect(
+            (
+                router.find('GET', '/foo%23bar') as TProstoLookupResult<
+                    typeof handler
+                >
+            ).ctx.params,
+        ).toEqual({ param: 'foo#bar' })
+        expect(
+            (
+                router.find('GET', '/%F0%9F%8D%8C') as TProstoLookupResult<
+                    typeof handler
+                >
+            ).ctx.params,
+        ).toEqual({ param: '🍌' })
+        expect(
+            (
+                router.find('GET', '/%F0%9F%8D%8C-foo') as TProstoLookupResult<
+                    typeof handler
+                >
+            ).ctx.params,
+        ).toEqual({ param: '🍌-foo' })
+        expect(
+            (
+                router.find(
+                    'GET',
+                    '/%F0%9F%8D%8C-foo%23bar',
+                ) as TProstoLookupResult<typeof handler>
+            ).ctx.params,
+        ).toEqual({ param: '🍌-foo#bar' })
     })
 })
 
 describe('ProstoRouter must process tricky double encoded URIs', () => {
-    trickyRoutesDoubleEncoding.forEach(r => router.get(r.r, () => r.r))
+    trickyRoutesDoubleEncoding.forEach((r) => router.get(r.r, () => r.r))
 
-    trickyRoutesDoubleEncoding.forEach(r => {
-        it('must resolve tricky double encoded ' + r.check + ' -> ' + r.r + ' ' + JSON.stringify(r.params), () => {
-            testPath(router, 'GET', r.check, r.r, r.params as unknown as Record<string, string | string[]>)
-        })
+    trickyRoutesDoubleEncoding.forEach((r) => {
+        it(
+            'must resolve tricky double encoded ' +
+                r.check +
+                ' -> ' +
+                r.r +
+                ' ' +
+                JSON.stringify(r.params),
+            () => {
+                testPath(
+                    router,
+                    'GET',
+                    r.check,
+                    r.r,
+                    r.params as unknown as Record<string, string | string[]>,
+                )
+            },
+        )
     })
 })
 
@@ -371,7 +500,10 @@ describe('ProstoRouter wildcard + params', () => {
     router.get('/staticcss/*/styles/:filename.css', () => 'ok')
     router.toTree()
     it('must resolve wildcard + params path', () => {
-        testPath(router, 'GET', '/staticcss/1/2/3/styles/style.css', 'ok', { '*': '1/2/3', 'filename.css': 'style.css' })
+        testPath(router, 'GET', '/staticcss/1/2/3/styles/style.css', 'ok', {
+            '*': '1/2/3',
+            'filename.css': 'style.css',
+        })
     })
 })
 
@@ -380,10 +512,30 @@ describe('ProstoRouter optional params', () => {
     console.log(reg)
     router.toTree()
     it('must resolve wildcard + params path', () => {
-        testPath(router, 'GET', '/optional/1/2/3', 'ok -> optional', { 'v1': '1', 'v2': '2', 'v3': '3' })
-        testPath(router, 'GET', '/optional/1/2', 'ok -> optional', { 'v1': '1', 'v2': '2', 'v3': undefined })
-        testPath(router, 'GET', '/optional/1/', 'ok -> optional', { 'v1': '1', 'v2': undefined, 'v3': undefined })
-        testPath(router, 'GET', '/optional/', 'ok -> optional', { 'v1': undefined, 'v2': undefined, 'v3': undefined })
-        testPath(router, 'GET', '/optional', 'ok -> optional', { 'v1': undefined, 'v2': undefined, 'v3': undefined })
+        testPath(router, 'GET', '/optional/1/2/3', 'ok -> optional', {
+            v1: '1',
+            v2: '2',
+            v3: '3',
+        })
+        testPath(router, 'GET', '/optional/1/2', 'ok -> optional', {
+            v1: '1',
+            v2: '2',
+            v3: undefined,
+        })
+        testPath(router, 'GET', '/optional/1/', 'ok -> optional', {
+            v1: '1',
+            v2: undefined,
+            v3: undefined,
+        })
+        testPath(router, 'GET', '/optional/', 'ok -> optional', {
+            v1: undefined,
+            v2: undefined,
+            v3: undefined,
+        })
+        testPath(router, 'GET', '/optional', 'ok -> optional', {
+            v1: undefined,
+            v2: undefined,
+            v3: undefined,
+        })
     })
 })

@@ -1,38 +1,84 @@
-import { EPathSegmentType, TParsedSegmentParametric, TParsedSegmentStatic } from '../parser/p-types'
+import { describe, it, expect } from 'vitest'
+import {
+    EPathSegmentType,
+    TParsedSegmentParametric,
+    TParsedSegmentStatic,
+} from '../parser/p-types'
 import { generateFullMatchFunc, generateFullMatchRegex } from './match-utils'
 
-const s = (value: string): TParsedSegmentStatic => ({type: EPathSegmentType.STATIC, value })
-const p = (name: string, regex = '([^\\/]*)'): TParsedSegmentParametric => ({ type: EPathSegmentType.VARIABLE, name, value: name, regex })
+const s = (value: string): TParsedSegmentStatic => ({
+    type: EPathSegmentType.STATIC,
+    value,
+})
+const p = (name: string, regex = '([^\\/]*)'): TParsedSegmentParametric => ({
+    type: EPathSegmentType.VARIABLE,
+    name,
+    value: name,
+    regex,
+})
 const w = (regex = '(.*)'): TParsedSegmentParametric => p('*', regex)
-const po = (name: string, regex?: string) => Object.assign(p(name, regex), { optional: true })
+const po = (name: string, regex?: string) =>
+    Object.assign(p(name, regex), { optional: true })
 const wo = (regex?: string) => Object.assign(w(regex), { optional: true })
 
 const segments: (TParsedSegmentStatic | TParsedSegmentParametric)[] = [
-    s('static'), p('key'), s('-'), w(),
+    s('static'),
+    p('key'),
+    s('-'),
+    w(),
 ]
 
 const segmentsMulti: (TParsedSegmentStatic | TParsedSegmentParametric)[] = [
-    p('key'), s('-'), p('key'), s('-'), w(), s('-'), w(),
+    p('key'),
+    s('-'),
+    p('key'),
+    s('-'),
+    w(),
+    s('-'),
+    w(),
 ]
 
 const segmentsOptional: (TParsedSegmentStatic | TParsedSegmentParametric)[] = [
-    p('key'), s('-'), p('key'), s('-'), po('opt'), s('-'), wo(), s('/'), po('opt2'),
+    p('key'),
+    s('-'),
+    p('key'),
+    s('-'),
+    po('opt'),
+    s('-'),
+    wo(),
+    s('/'),
+    po('opt2'),
 ]
 
 const segmentsOptional2: (TParsedSegmentStatic | TParsedSegmentParametric)[] = [
-    s('/start/'), po('v1'), s('/'), po('v2'), s('/'), wo('([^-]*)'), s('-'), po('v3'),
+    s('/start/'),
+    po('v1'),
+    s('/'),
+    po('v2'),
+    s('/'),
+    wo('([^-]*)'),
+    s('-'),
+    po('v3'),
 ]
 
 describe('match-utils->generateFullMatchRegex', () => {
     it('must generate Full Match Regex with vars', () => {
-        expect(generateFullMatchRegex(segments)).toEqual('static([^\\/]*)\\-(.*)')
+        expect(generateFullMatchRegex(segments)).toEqual(
+            'static([^\\/]*)\\-(.*)',
+        )
     })
     it('must generate Full Match Regex with multi vars', () => {
-        expect(generateFullMatchRegex(segmentsMulti)).toEqual('([^\\/]*)\\-([^\\/]*)\\-(.*)\\-(.*)')
+        expect(generateFullMatchRegex(segmentsMulti)).toEqual(
+            '([^\\/]*)\\-([^\\/]*)\\-(.*)\\-(.*)',
+        )
     })
     it('must generate Full Match Regex for optional vars', () => {
-        expect(generateFullMatchRegex(segmentsOptional)).toEqual('([^\\/]*)\\-([^\\/]*)\\-([^\\/]*)?\\-?(.*)?\\/?([^\\/]*)?')
-        expect(generateFullMatchRegex(segmentsOptional2)).toEqual('\\/start\\/?([^\\/]*)?\\/?([^\\/]*)?\\/?([^-]*)?\\-?([^\\/]*)?')
+        expect(generateFullMatchRegex(segmentsOptional)).toEqual(
+            '([^\\/]*)\\-([^\\/]*)\\-([^\\/]*)?\\-?(.*)?\\/?([^\\/]*)?',
+        )
+        expect(generateFullMatchRegex(segmentsOptional2)).toEqual(
+            '\\/start\\/?([^\\/]*)?\\/?([^\\/]*)?\\/?([^-]*)?\\-?([^\\/]*)?',
+        )
     })
 })
 

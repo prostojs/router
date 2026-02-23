@@ -2,11 +2,11 @@ export default class CodeString<FuncType = () => unknown> {
     private code = ''
 
     public append(s: string | string[], newLine = false) {
-        this.code += ['', s].flat().join(newLine ? '\n'  : '')
+        this.code += ['', s].flat().join(newLine ? '\n' : '')
     }
 
     public prepend(s: string | string[], newLine = false) {
-        this.code = [s, ''].flat().join(newLine ? '\n'  : '') + this.code
+        this.code = [s, ''].flat().join(newLine ? '\n' : '') + this.code
     }
 
     generateFunction(...args: string[]): FuncType {

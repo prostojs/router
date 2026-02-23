@@ -1,0 +1,33 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["typescript", "import"],
+    "categories": {
+        "correctness": "error",
+        "suspicious": "warn"
+    },
+    "rules": {
+        "no-debugger": "error",
+        "lines-between-class-members": "error",
+
+        "typescript/explicit-function-return-type": "off",
+        "typescript/no-empty-interface": "off",
+        "typescript/no-inferrable-types": "off",
+        "typescript/explicit-module-boundary-types": "off",
+        "typescript/no-implied-eval": "off",
+        "typescript/no-this-alias": "warn"
+    },
+    "ignorePatterns": [
+        "index.js",
+        "*.config.js",
+        "scripts/*",
+        "**/*.cjs.js",
+        "**/*.cjs.prod.js",
+        "**/*.esm-bundler.js",
+        "**/*.esm-browser.js",
+        "**/*.esm-browser.prod.js",
+        "**/*.global.js",
+        "**/*.global.prod.js",
+        "**/dist/*.d.ts",
+        "explorations/*"
+    ]
+}

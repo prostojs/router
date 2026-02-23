@@ -1,2 +1,2 @@
 'use strict'
-module.exports = require('./dist/router.cjs.prod.js')
+module.exports = require('./dist/index.cjs')

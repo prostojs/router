@@ -1,6 +1,13 @@
 import { TParsedSegment } from '../parser/p-types'
 
-export type THttpMethod = 'GET' | 'PUT' | 'POST' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'
+export type THttpMethod =
+    | 'GET'
+    | 'PUT'
+    | 'POST'
+    | 'PATCH'
+    | 'DELETE'
+    | 'HEAD'
+    | 'OPTIONS'
 
 export type TProstoParamsType = Record<string, string | string[]>
 
@@ -10,7 +17,10 @@ export interface TProstoLookupContext<ParamsType = TProstoParamsType> {
 
 export type TProstoRouteHandler = (...args: undefined[]) => void
 
-export interface TProstoRoute<HandlerType = TProstoRouteHandler, ParamsType = TProstoParamsType> {
+export interface TProstoRoute<
+    HandlerType = TProstoRouteHandler,
+    ParamsType = TProstoParamsType,
+> {
     method: THttpMethod
     options: TProstoRouteOptions
     path: string
@@ -22,14 +32,16 @@ export interface TProstoRoute<HandlerType = TProstoRouteHandler, ParamsType = TP
     segments: TParsedSegment[]
     generalized: string
     lengths: number[]
-    minLength: number,
-    firstLength: number,
-    firstStatic: string,
+    minLength: number
+    firstLength: number
+    firstStatic: string
     fullMatch: TProstoRouteMatchFunc<ParamsType>
     pathBuilder: TProstoRouterPathBuilder<ParamsType>
 }
 
-export type TProstoRouterPathBuilder<ParamsType = TProstoParamsType> = (params?: ParamsType) => string
+export type TProstoRouterPathBuilder<ParamsType = TProstoParamsType> = (
+    params?: ParamsType,
+) => string
 
 export interface TProstoLookupResult<HandlerType = TProstoRouteHandler> {
     route: TProstoRoute<HandlerType>
@@ -37,7 +49,7 @@ export interface TProstoLookupResult<HandlerType = TProstoRouteHandler> {
 }
 
 export interface TProstoParametricRoutes {
-    byParts: TProstoRoute<unknown, unknown>[][]
+    byParts: Map<number, TProstoRoute<unknown, unknown>[]>
 }
 
 export interface TProstoRouterMethodIndex {
@@ -47,16 +59,17 @@ export interface TProstoRouterMethodIndex {
 }
 
 export type TProstoRouterMainIndex = {
-    [method in THttpMethod]?: TProstoRouterMethodIndex;
+    [method in THttpMethod]?: TProstoRouterMethodIndex
 }
 
-export interface TProstoRoutsRegistry<HandlerType = TProstoRouteHandler, ParamsType = TProstoParamsType> {
+export interface TProstoRoutsRegistry<
+    HandlerType = TProstoRouteHandler,
+    ParamsType = TProstoParamsType,
+> {
     [genRoute: string]: TProstoRoute<HandlerType, ParamsType>
 }
 
-export interface TProstoRouteOptions {
-
-}
+export interface TProstoRouteOptions {}
 
 export interface TProstoRouterOptions extends TProstoRouteOptions {
     ignoreTrailingSlash?: boolean
@@ -66,4 +79,8 @@ export interface TProstoRouterOptions extends TProstoRouteOptions {
     silent?: boolean
 }
 
-export type TProstoRouteMatchFunc<ParamsType = TProstoParamsType> = (path: string, params: ParamsType, utils: Record<string, unknown>) => string[] | false
+export type TProstoRouteMatchFunc<ParamsType = TProstoParamsType> = (
+    path: string,
+    params: ParamsType,
+    utils: Record<string, unknown>,
+) => RegExpMatchArray | null

@@ -4,17 +4,22 @@ import { EPathSegmentType, TParsedSegment } from '../parser/p-types'
 import { escapeRegex } from '../utils/regex'
 import { TProstoRouteMatchFunc } from './router.types'
 
-export function generateFullMatchRegex(segments: TParsedSegment[], nonCapturing = false): string {
+export function generateFullMatchRegex(
+    segments: TParsedSegment[],
+    nonCapturing = false,
+): string {
     let regex = ''
     let optional = false
-    segments.forEach(segment => {
+    segments.forEach((segment) => {
         switch (segment.type) {
             case EPathSegmentType.STATIC:
                 if (optional) {
                     if (['-', '/'].includes(segment.value)) {
                         regex += escapeRegex(segment.value) + '?'
                     } else {
-                        throw new Error(`Static route segment "${ segment.value }" is not allowed after optional parameters.`)
+                        throw new Error(
+                            `Static route segment "${segment.value}" is not allowed after optional parameters.`,
+                        )
                     }
                 } else {
                     regex += escapeRegex(segment.value)
@@ -22,13 +27,18 @@ export function generateFullMatchRegex(segments: TParsedSegment[], nonCapturing 
                 break
             case EPathSegmentType.VARIABLE:
             case EPathSegmentType.WILDCARD:
-                if (optional && !segment.optional) throw new Error('Obligatory route parameters are not allowed after optional parameters. Use "?" to mark it as an optional route parameter.')
+                if (optional && !segment.optional)
+                    throw new Error(
+                        'Obligatory route parameters are not allowed after optional parameters. Use "?" to mark it as an optional route parameter.',
+                    )
                 if (segment.optional && !optional) {
                     if (regex.endsWith('/')) {
                         regex += '?'
                     }
                 }
-                regex += nonCapturing ? segment.regex.replace(/^\(/, '(?:') : segment.regex
+                regex += nonCapturing
+                    ? segment.regex.replace(/^\(/, '(?:')
+                    : segment.regex
                 if (segment.optional) {
                     optional = true
                     regex += '?'
@@ -38,12 +48,15 @@ export function generateFullMatchRegex(segments: TParsedSegment[], nonCapturing 
     return regex
 }
 
-export function generateFullMatchFunc<ParamsType = TProstoParamsType>(segments: TParsedSegment[], ignoreCase = false): TProstoRouteMatchFunc<ParamsType> {
+export function generateFullMatchFunc<ParamsType = TProstoParamsType>(
+    segments: TParsedSegment[],
+    ignoreCase = false,
+): TProstoRouteMatchFunc<ParamsType> {
     const str = new CodeString<TProstoRouteMatchFunc<ParamsType>>()
     const regex = generateFullMatchRegex(segments)
     let index = 0
     const obj: Record<string, number[]> = {}
-    segments.forEach(segment => {
+    segments.forEach((segment) => {
         switch (segment.type) {
             case EPathSegmentType.VARIABLE:
             case EPathSegmentType.WILDCARD:
@@ -52,24 +65,32 @@ export function generateFullMatchFunc<ParamsType = TProstoParamsType>(segments: 
                 obj[segment.value].push(index)
         }
     })
-    Object.keys(obj).forEach(key => {
+    Object.keys(obj).forEach((key) => {
         str.append(
             obj[key].length > 1
-                ? `\tparams['${key}'] = [${ obj[key].map(i => `utils.safeDecodeURIComponent(a[${i}])`).join(', ') }]`
+                ? `\tparams['${key}'] = [${obj[key].map((i) => `utils.safeDecodeURIComponent(a[${i}])`).join(', ')}]`
                 : `\tparams['${key}'] = utils.safeDecodeURIComponent(a[${obj[key][0]}])`,
-            true
+            true,
         )
     })
-    str.prepend([`const a = path.match(/^${regex}$/${ignoreCase ? 'i' : ''})`, 'if (a) {'], true)
+    str.prepend(
+        [
+            `const a = path.match(/^${regex}$/${ignoreCase ? 'i' : ''})`,
+            'if (a) {',
+        ],
+        true,
+    )
     str.append(['}', 'return a'], true)
     return str.generateFunction('path', 'params', 'utils')
 }
 
-export function generatePathBuilder<ParamsType = TProstoParamsType>(segments: TParsedSegment[]): TProstoRouterPathBuilder<ParamsType> {
+export function generatePathBuilder<ParamsType = TProstoParamsType>(
+    segments: TParsedSegment[],
+): TProstoRouterPathBuilder<ParamsType> {
     const str = new CodeString<TProstoRouterPathBuilder<ParamsType>>()
     const obj: Record<string, number> = {}
     const index: Record<string, number> = {}
-    segments.forEach(segment => {
+    segments.forEach((segment) => {
         switch (segment.type) {
             case EPathSegmentType.VARIABLE:
             case EPathSegmentType.WILDCARD:
@@ -79,7 +100,7 @@ export function generatePathBuilder<ParamsType = TProstoParamsType>(segments: TP
         }
     })
     str.append('return `')
-    segments.forEach(segment => {
+    segments.forEach((segment) => {
         switch (segment.type) {
             case EPathSegmentType.STATIC:
                 str.append(segment.value.replace(/`/g, '\\`'))
@@ -87,10 +108,14 @@ export function generatePathBuilder<ParamsType = TProstoParamsType>(segments: TP
             case EPathSegmentType.VARIABLE:
             case EPathSegmentType.WILDCARD:
                 if (obj[segment.value] > 1) {
-                    str.append('${ params[\'' + segment.value + `\'][${ index[segment.value] }] }`)
+                    str.append(
+                        "${ params['" +
+                            segment.value +
+                            `'][${index[segment.value]}] }`,
+                    )
                     index[segment.value]++
                 } else {
-                    str.append('${ params[\'' + segment.value + '\'] }')
+                    str.append("${ params['" + segment.value + "'] }")
                 }
         }
     })

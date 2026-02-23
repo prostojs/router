@@ -81,8 +81,7 @@ async function main() {
         // run tests before release
         step('Running tests...')
         if (!skipTests && !isDryRun) {
-            await run(bin('jest'), ['--clearCache'])
-            await run('npm', ['test', '--', '--bail'])
+            await run('npm', ['test'])
         } else {
             info(`(skipped)`)
         }
@@ -97,7 +96,7 @@ async function main() {
         // build all packages with types
         step('Building package...')
         if (!skipBuild && !isDryRun) {
-            await run('npm', ['run', 'build', '--', '--release'])
+            await run('npm', ['run', 'build'])
         } else {
             info(`(skipped)`)
         }

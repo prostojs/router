@@ -5,22 +5,39 @@ import { EPathSegmentType, TParsedSegmentParametric } from '../parser/p-types'
 import { safeDecodeURI, safeDecodeURIComponent } from '../utils/decode'
 import { countOfSlashes } from '../utils/strings'
 import { generateFullMatchFunc, generatePathBuilder } from './match-utils'
-import { THttpMethod, TProstoRouteHandler, TProstoRouterMainIndex, TProstoRoute, TProstoRoutsRegistry,
-    TProstoParamsType, TProstoRouterPathBuilder,
-    TProstoRouterMethodIndex, TProstoLookupResult, TProstoRouterOptions, TProstoRouteOptions } from './router.types'
+import {
+    THttpMethod,
+    TProstoRouteHandler,
+    TProstoRouterMainIndex,
+    TProstoRoute,
+    TProstoRoutsRegistry,
+    TProstoParamsType,
+    TProstoRouterPathBuilder,
+    TProstoRouterMethodIndex,
+    TProstoLookupResult,
+    TProstoRouterOptions,
+    TProstoRouteOptions,
+} from './router.types'
 import { ProstoTree } from '@prostojs/tree'
 import { banner } from '../utils/banner'
 import { TProstoRouteMatchFunc } from './router.types'
 
-const methods: THttpMethod[] = ['GET', 'PUT', 'POST', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
+const methods: THttpMethod[] = [
+    'GET',
+    'PUT',
+    'POST',
+    'DELETE',
+    'PATCH',
+    'HEAD',
+    'OPTIONS',
+]
 
 const matcherFuncUtils = {
     safeDecodeURIComponent,
 }
 
-type TProstoRouterCache = {
-    [method in THttpMethod]: ProstoCache
-}
+type TProstoRouterCache = Record<string, ProstoCache>
+
 export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
     protected readonly _options: TProstoRouterOptions
 
@@ -33,33 +50,28 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         if (!this._options.silent) {
             consoleInfo('The Router Initialized')
         }
-        const cacheOpts = {
-            limit: _options?.cacheLimit || 0,
-        }
         if (_options?.cacheLimit) {
-            this.cache = {
-                GET: new ProstoCache<TProstoLookupResult>(cacheOpts),
-                PUT: new ProstoCache<TProstoLookupResult>(cacheOpts),
-                POST: new ProstoCache<TProstoLookupResult>(cacheOpts),
-                PATCH: new ProstoCache<TProstoLookupResult>(cacheOpts),
-                DELETE: new ProstoCache<TProstoLookupResult>(cacheOpts),
-                HEAD: new ProstoCache<TProstoLookupResult>(cacheOpts),
-                OPTIONS: new ProstoCache<TProstoLookupResult>(cacheOpts),
-            }
+            this.cache = {}
         }
+    }
+
+    protected getMethodCache(method: THttpMethod): ProstoCache | undefined {
+        if (!this.cache) return undefined
+        if (!this.cache[method]) {
+            this.cache[method] = new ProstoCache<TProstoLookupResult>({
+                limit: this._options.cacheLimit || 0,
+            })
+        }
+        return this.cache[method]
     }
 
     protected refreshCache(method: THttpMethod | '*') {
         if (this._options.cacheLimit && this.cache) {
             if (method === '*') {
-                this.cache.GET.reset()
-                this.cache.PUT.reset()
-                this.cache.POST.reset()
-                this.cache.PATCH.reset()
-                this.cache.DELETE.reset()
-                this.cache.HEAD.reset()
-                this.cache.OPTIONS.reset()
-            } else if (this.cache && this.cache[method]) {
+                for (const key of Object.keys(this.cache)) {
+                    this.cache[key].reset()
+                }
+            } else if (this.cache[method]) {
                 this.cache[method].reset()
             }
         }
@@ -71,15 +83,15 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
 
     protected routesRegistry: TProstoRoutsRegistry<unknown, unknown> = {}
 
-    protected registerRoute<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(
+    protected registerRoute<
+        ParamsType = TProstoParamsType,
+        HandlerType = BaseHandlerType,
+    >(
         method: THttpMethod,
         path: string,
         options: TProstoRouteOptions,
-        handler: HandlerType
+        handler: HandlerType,
     ): TProstoRouterPathHandle<ParamsType> {
-        // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
-        //     this.logger.debug('Register route ' + method + ': ' + path)
-        // }
         this.refreshCache(method)
         const opts = this.mergeOptions(options)
         const normalPath = ('/' + path)
@@ -92,20 +104,48 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             root[method] = {
                 statics: {},
                 parametrics: {
-                    byParts: [],
+                    byParts: new Map(),
                 },
                 wildcards: [],
             }
         }
         const rootMethod = root[method] as TProstoRouterMethodIndex
-        const generalized = method + ':' + segments.map(s => {
-            switch (s.type) {
-                case EPathSegmentType.STATIC: return s.value
-                case EPathSegmentType.VARIABLE: return '<VAR' + (s.regex === '([^-\\/]*)' ? '' : s.regex) + '>'
-                case EPathSegmentType.WILDCARD: return s.value
-            }
-        }).join('')
-        let route: TProstoRoute<HandlerType, ParamsType> = this.routesRegistry[generalized] as TProstoRoute<HandlerType, ParamsType>
+
+        const hasCustomRegex = segments.some(
+            (s) =>
+                s.type === EPathSegmentType.VARIABLE &&
+                s.regex !== '([^\\/]*)' &&
+                s.regex !== '(.*)',
+        )
+        if (hasCustomRegex && !this._options.silent) {
+            consoleWarn(
+                `Route "${path}" uses custom regex. ` +
+                    'Ensure patterns do not allow catastrophic backtracking (ReDoS).',
+            )
+        }
+
+        const generalized =
+            method +
+            ':' +
+            segments
+                .map((s) => {
+                    switch (s.type) {
+                        case EPathSegmentType.STATIC:
+                            return s.value
+                        case EPathSegmentType.VARIABLE:
+                            return (
+                                '<VAR' +
+                                (s.regex === '([^-\\/]*)' ? '' : s.regex) +
+                                '>'
+                            )
+                        case EPathSegmentType.WILDCARD:
+                            return s.value
+                    }
+                })
+                .join('')
+        let route: TProstoRoute<HandlerType, ParamsType> = this.routesRegistry[
+            generalized
+        ] as TProstoRoute<HandlerType, ParamsType>
         if (route) {
             if (this._options.disableDuplicatePath) {
                 const error = `Attempt to register duplicated path: "${path}". Duplicate paths are disabled.\nYou can enable duplicated paths removing 'disableDuplicatePath' option.`
@@ -113,23 +153,49 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 throw new Error(error)
             }
             if (route.handlers.includes(handler)) {
-                // if (this._options.logLevel >= EProstoLogLevel.ERROR) {
-                consoleError('Duplicate route with same handler ignored ' + generalized)
-                // }
+                consoleError(
+                    'Duplicate route with same handler ignored ' + generalized,
+                )
             } else {
-                // if (this._options.logLevel >= EProstoLogLevel.WARN) {
                 consoleWarn('Duplicate route registered ' + generalized)
-                // }
                 route.handlers.push(handler)
             }
         } else {
-            const isStatic = segments.length === 1 && segments[0].type === EPathSegmentType.STATIC || segments.length === 0
-            const isParametric = !!segments.find(p => p.type === EPathSegmentType.VARIABLE)
-            const firstOptional = segments.findIndex(p => (p as TParsedSegmentParametric).optional)
+            const isStatic =
+                (segments.length === 1 &&
+                    segments[0].type === EPathSegmentType.STATIC) ||
+                segments.length === 0
+            const isParametric = !!segments.find(
+                (p) => p.type === EPathSegmentType.VARIABLE,
+            )
+            const firstOptional = segments.findIndex(
+                (p) => (p as TParsedSegmentParametric).optional,
+            )
             const isOptional = firstOptional >= 0
-            const isWildcard = !!segments.find(p => p.type === EPathSegmentType.WILDCARD)
-            const lengths = segments.slice(0, firstOptional >= 0 ? firstOptional : undefined).map(s => s.type === EPathSegmentType.STATIC ? s.value.length : 0)
-            const normalPathCase = segments[0] ? (this._options.ignoreCase ? segments[0].value.toLowerCase() : segments[0].value) : '/'
+            const isWildcard = !!segments.find(
+                (p) => p.type === EPathSegmentType.WILDCARD,
+            )
+            const hasSlashAllowingRegex =
+                isParametric &&
+                !isWildcard &&
+                !isOptional &&
+                segments.some(
+                    (s) =>
+                        s.type === EPathSegmentType.VARIABLE &&
+                        s.regex !== '([^\\/]*)' &&
+                        !s.regex.includes('[^\\/]') &&
+                        !s.regex.includes('[^/]'),
+                )
+            const lengths = segments
+                .slice(0, firstOptional >= 0 ? firstOptional : undefined)
+                .map((s) =>
+                    s.type === EPathSegmentType.STATIC ? s.value.length : 0,
+                )
+            const normalPathCase = segments[0]
+                ? this._options.ignoreCase
+                    ? segments[0].value.toLowerCase()
+                    : segments[0].value
+                : '/'
             this.routesRegistry[generalized] = route = {
                 method,
                 options: opts,
@@ -145,36 +211,73 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 firstLength: lengths[0],
                 firstStatic: normalPathCase.slice(0, lengths[0]),
                 generalized,
-                fullMatch: generateFullMatchFunc<unknown>(segments, this._options.ignoreCase),
+                fullMatch: generateFullMatchFunc<unknown>(
+                    segments,
+                    this._options.ignoreCase,
+                ),
                 pathBuilder: generatePathBuilder<unknown>(segments),
             }
             this.routes.push(route as TProstoRoute<unknown, unknown>)
             if (route.isStatic) {
                 // static is straight forward
-                rootMethod.statics[normalPathCase] = route as TProstoRoute<unknown, unknown>
+                rootMethod.statics[normalPathCase] = route as TProstoRoute<
+                    unknown,
+                    unknown
+                >
             } else {
                 // dynamic
-                if (route.isParametric && !route.isWildcard && !route.isOptional) {
+                if (
+                    route.isParametric &&
+                    !route.isWildcard &&
+                    !route.isOptional &&
+                    !hasSlashAllowingRegex
+                ) {
                     const countOfParts = route.segments
-                        .filter(s => s.type === EPathSegmentType.STATIC)
-                        .map(s => countOfSlashes(s.value)).reduce((a, b) => a + b, 1)  
-                    const byParts = rootMethod.parametrics.byParts[countOfParts] = rootMethod.parametrics.byParts[countOfParts] || []
-                    byParts.push(route as TProstoRoute<unknown, unknown>)
-                    rootMethod.parametrics.byParts[countOfParts] = byParts.sort(routeSorter)
-                } else if (route.isWildcard || route.isOptional) {
+                        .filter((s) => s.type === EPathSegmentType.STATIC)
+                        .map((s) => countOfSlashes(s.value))
+                        .reduce((a, b) => a + b, 1)
+                    const byParts = rootMethod.parametrics.byParts
+                    let bucket = byParts.get(countOfParts)
+                    if (!bucket) {
+                        bucket = []
+                        byParts.set(countOfParts, bucket)
+                    }
+                    insertSorted(
+                        bucket,
+                        route as TProstoRoute<unknown, unknown>,
+                        routeSorter,
+                    )
+                } else if (
+                    route.isWildcard ||
+                    route.isOptional ||
+                    hasSlashAllowingRegex
+                ) {
                     if (route.isOptional && route.firstStatic.endsWith('/')) {
                         route.firstStatic = route.firstStatic.slice(0, -1)
                         route.firstLength--
-                        route.minLength = Math.min(route.minLength, route.firstLength)
+                        route.minLength = Math.min(
+                            route.minLength,
+                            route.firstLength,
+                        )
                     }
-                    rootMethod.wildcards.push(route as TProstoRoute<unknown, unknown>)
-                    rootMethod.wildcards = rootMethod.wildcards.sort(routeSorter)
+                    insertSorted(
+                        rootMethod.wildcards,
+                        route as TProstoRoute<unknown, unknown>,
+                        routeSorter,
+                    )
                 }
             }
         }
         return {
             getPath: route.pathBuilder,
-            getArgs: () => route.segments.filter(p => p.type === EPathSegmentType.VARIABLE || p.type === EPathSegmentType.WILDCARD).map(s => (s as TParsedSegmentParametric).name),
+            getArgs: () =>
+                route.segments
+                    .filter(
+                        (p) =>
+                            p.type === EPathSegmentType.VARIABLE ||
+                            p.type === EPathSegmentType.WILDCARD,
+                    )
+                    .map((s) => (s as TParsedSegmentParametric).name),
             getStaticPart: () => route.firstStatic,
             test: route.fullMatch,
             isStatic: route.isStatic,
@@ -193,74 +296,124 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
     protected sanitizePath(path: string, ignoreTrailingSlash?: boolean) {
         const end = path.indexOf('?')
         let slicedPath = end >= 0 ? path.slice(0, end) : path
-        if ((ignoreTrailingSlash || this._options.ignoreTrailingSlash) && slicedPath[slicedPath.length - 1] === '/') {
+        const shouldIgnoreTrailingSlash =
+            ignoreTrailingSlash || this._options.ignoreTrailingSlash
+        if (
+            shouldIgnoreTrailingSlash &&
+            slicedPath.length > 1 &&
+            slicedPath.charCodeAt(slicedPath.length - 1) === 47 // '/'
+        ) {
             slicedPath = slicedPath.slice(0, slicedPath.length - 1)
         }
         const normalPath = safeDecodeURI(
-            slicedPath
-                .replace(/%25/g, '%2525') // <-- workaround to avoid double decoding
+            slicedPath.replace(/%25/g, '%2525'), // <-- workaround to avoid double decoding
         )
+        const normalPathWithCase = this._options.ignoreCase
+            ? normalPath.toLowerCase()
+            : normalPath
+        let slashCount = 0
+        for (let i = 0; i < normalPath.length; i++) {
+            if (normalPath.charCodeAt(i) === 47) slashCount++
+        }
         return {
             normalPath,
-            normalPathWithCase: this._options.ignoreCase ? normalPath.toLowerCase() : normalPath,
+            normalPathWithCase,
+            slashCount,
         }
     }
 
-    public lookup<HandlerType = BaseHandlerType>(method: THttpMethod, path: string, ignoreTrailingSlash?: boolean): TProstoLookupResult<HandlerType> | void {
-        // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
-        //     this.logger.debug('Lookup route ' + method + ': ' + path)
-        // }
-        if (this._options.cacheLimit && this.cache && this.cache[method]) {
-            const cached = this.cache[method].get(path) as TProstoLookupResult<HandlerType>
+    public lookup<HandlerType = BaseHandlerType>(
+        method: THttpMethod,
+        path: string,
+        ignoreTrailingSlash?: boolean,
+    ): TProstoLookupResult<HandlerType> | void {
+        const methodCache = this.getMethodCache(method)
+        if (methodCache) {
+            const cacheKey =
+                ignoreTrailingSlash !== undefined
+                    ? path + '\0' + (ignoreTrailingSlash ? '1' : '0')
+                    : path
+            const cached = methodCache.get(
+                cacheKey,
+            ) as TProstoLookupResult<HandlerType>
             if (cached) return cached
-        }
-        const { normalPath, normalPathWithCase } = this.sanitizePath(path, ignoreTrailingSlash)
-        const rootMethod = this.root[method]
-        const lookupResult: TProstoLookupResult<HandlerType> = {
-            route: null as unknown as TProstoRoute<HandlerType>,
-            ctx: { params: {} },
-        }
-        const cache = (result: TProstoLookupResult<HandlerType>): TProstoLookupResult<HandlerType> => {
-            // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
-            //     this.logger.debug('Route found  ' + method + ': ' + lookupResult.route.path, lookupResult.ctx.params)
-            // }
-            if (this._options.cacheLimit && this.cache && this.cache[method]) {
-                this.cache[method].set(path, result)
+
+            const result = this._lookup<HandlerType>(
+                method,
+                path,
+                ignoreTrailingSlash,
+            )
+            if (result) {
+                methodCache.set(cacheKey, result)
             }
             return result
         }
-        if (rootMethod) {
-            lookupResult.route = rootMethod.statics[normalPathWithCase] as TProstoRoute<HandlerType>
-            if (lookupResult.route) return cache(lookupResult)
-            const pathSegmentsCount = countOfSlashes(normalPath) + 1
-            const pathLength = normalPath.length
-            const { parametrics } = rootMethod
-            const bySegments = parametrics.byParts[pathSegmentsCount]
-            if (bySegments) {
-                for (let i = 0; i < bySegments.length; i++) {
-                    lookupResult.route = bySegments[i] as TProstoRoute<HandlerType>
-                    if (pathLength >= lookupResult.route.minLength) {
-                        if (normalPathWithCase.startsWith(lookupResult.route.firstStatic)
-                            && lookupResult.route.fullMatch(normalPath, lookupResult.ctx.params, matcherFuncUtils)) {
-                            return cache(lookupResult)
+        return this._lookup<HandlerType>(method, path, ignoreTrailingSlash)
+    }
+
+    private _lookup<HandlerType = BaseHandlerType>(
+        method: THttpMethod,
+        path: string,
+        ignoreTrailingSlash?: boolean,
+    ): TProstoLookupResult<HandlerType> | void {
+        const { normalPath, normalPathWithCase, slashCount } =
+            this.sanitizePath(path, ignoreTrailingSlash)
+        const rootMethod = this.root[method]
+        if (!rootMethod) return
+
+        // static lookup
+        const staticRoute = rootMethod.statics[
+            normalPathWithCase
+        ] as TProstoRoute<HandlerType>
+        if (staticRoute) {
+            return {
+                route: staticRoute,
+                ctx: { params: {} },
+            }
+        }
+
+        const pathLength = normalPath.length
+        const pathSegmentsCount = slashCount + 1
+
+        // parametric lookup
+        const bySegments = rootMethod.parametrics.byParts.get(pathSegmentsCount)
+        if (bySegments) {
+            for (let i = 0; i < bySegments.length; i++) {
+                const route = bySegments[i] as TProstoRoute<HandlerType>
+                if (
+                    pathLength >= route.minLength &&
+                    (route.firstLength === 0 ||
+                        normalPathWithCase.startsWith(route.firstStatic))
+                ) {
+                    const params: TProstoParamsType = {} as TProstoParamsType
+                    if (route.fullMatch(normalPath, params, matcherFuncUtils)) {
+                        return {
+                            route,
+                            ctx: { params },
                         }
                     }
                 }
             }
-            const { wildcards } = rootMethod
-            for (let i = 0; i < wildcards.length; i++) {
-                lookupResult.route = wildcards[i] as TProstoRoute<HandlerType>
-                if (pathLength >= lookupResult.route.minLength) {
-                    if (normalPathWithCase.startsWith(lookupResult.route.firstStatic)
-                        && lookupResult.route.fullMatch(normalPath, lookupResult.ctx.params, matcherFuncUtils)) {
-                        return cache(lookupResult)
+        }
+
+        // wildcard / optional / slash-allowing-regex fallback
+        const { wildcards } = rootMethod
+        for (let i = 0; i < wildcards.length; i++) {
+            const route = wildcards[i] as TProstoRoute<HandlerType>
+            if (
+                pathLength >= route.minLength &&
+                (route.firstLength === 0 ||
+                    normalPathWithCase.startsWith(route.firstStatic))
+            ) {
+                const params: TProstoParamsType = {} as TProstoParamsType
+                if (route.fullMatch(normalPath, params, matcherFuncUtils)) {
+                    return {
+                        route,
+                        ctx: { params },
                     }
                 }
             }
         }
-        // if (this._options.logLevel >= EProstoLogLevel.DEBUG) {
-        //     this.logger.debug('Route not found ' + method + ': ' + path)
-        // }
     }
 
     public find(method: THttpMethod, path: string) {
@@ -271,52 +424,132 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         method: THttpMethod | '*',
         path: string,
         options: TProstoRouteOptions | HandlerType,
-        handler?: HandlerType
+        handler?: HandlerType,
     ): TProstoRouterPathHandle<ParamsType> {
-        const { opts, func } = extractOptionsAndHandler<HandlerType>(options, handler)
+        const { opts, func } = extractOptionsAndHandler<HandlerType>(
+            options,
+            handler,
+        )
         if (method === '*') {
-            return methods.map(m => this.registerRoute<ParamsType, HandlerType>(m, path, opts, func))[0]
+            let first: TProstoRouterPathHandle<ParamsType> | undefined
+            for (let i = 0; i < methods.length; i++) {
+                const handle = this.registerRoute<ParamsType, HandlerType>(
+                    methods[i],
+                    path,
+                    opts,
+                    func,
+                )
+                if (!first) first = handle
+            }
+            return first!
         }
-        return this.registerRoute<ParamsType, HandlerType>(method, path, opts, func)
+        return this.registerRoute<ParamsType, HandlerType>(
+            method,
+            path,
+            opts,
+            func,
+        )
     }
 
-    public all<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(path: string, options: TProstoRouteOptions | HandlerType, handler?: HandlerType) {
-        const { opts, func } = extractOptionsAndHandler<HandlerType>(options, handler)
+    public all<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(
+        path: string,
+        options: TProstoRouteOptions | HandlerType,
+        handler?: HandlerType,
+    ) {
+        const { opts, func } = extractOptionsAndHandler<HandlerType>(
+            options,
+            handler,
+        )
         return this.on<ParamsType, HandlerType>('*', path, opts, func)
     }
 
-    public get<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(path: string, options: TProstoRouteOptions | HandlerType, handler?: HandlerType) {
-        const { opts, func } = extractOptionsAndHandler<HandlerType>(options, handler)
+    public get<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(
+        path: string,
+        options: TProstoRouteOptions | HandlerType,
+        handler?: HandlerType,
+    ) {
+        const { opts, func } = extractOptionsAndHandler<HandlerType>(
+            options,
+            handler,
+        )
         return this.on<ParamsType, HandlerType>('GET', path, opts, func)
     }
 
-    public put<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(path: string, options: TProstoRouteOptions | HandlerType, handler?: HandlerType) {
-        const { opts, func } = extractOptionsAndHandler<HandlerType>(options, handler)
+    public put<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(
+        path: string,
+        options: TProstoRouteOptions | HandlerType,
+        handler?: HandlerType,
+    ) {
+        const { opts, func } = extractOptionsAndHandler<HandlerType>(
+            options,
+            handler,
+        )
         return this.on<ParamsType, HandlerType>('PUT', path, opts, func)
     }
 
-    public post<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(path: string, options: TProstoRouteOptions | HandlerType, handler?: HandlerType) {
-        const { opts, func } = extractOptionsAndHandler<HandlerType>(options, handler)
+    public post<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(
+        path: string,
+        options: TProstoRouteOptions | HandlerType,
+        handler?: HandlerType,
+    ) {
+        const { opts, func } = extractOptionsAndHandler<HandlerType>(
+            options,
+            handler,
+        )
         return this.on<ParamsType, HandlerType>('POST', path, opts, func)
     }
 
-    public patch<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(path: string, options: TProstoRouteOptions | HandlerType, handler?: HandlerType) {
-        const { opts, func } = extractOptionsAndHandler<HandlerType>(options, handler)
+    public patch<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(
+        path: string,
+        options: TProstoRouteOptions | HandlerType,
+        handler?: HandlerType,
+    ) {
+        const { opts, func } = extractOptionsAndHandler<HandlerType>(
+            options,
+            handler,
+        )
         return this.on<ParamsType, HandlerType>('PATCH', path, opts, func)
     }
 
-    public delete<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(path: string, options: TProstoRouteOptions | HandlerType, handler?: HandlerType) {
-        const { opts, func } = extractOptionsAndHandler<HandlerType>(options, handler)
+    public delete<
+        ParamsType = TProstoParamsType,
+        HandlerType = BaseHandlerType,
+    >(
+        path: string,
+        options: TProstoRouteOptions | HandlerType,
+        handler?: HandlerType,
+    ) {
+        const { opts, func } = extractOptionsAndHandler<HandlerType>(
+            options,
+            handler,
+        )
         return this.on<ParamsType, HandlerType>('DELETE', path, opts, func)
     }
 
-    public options<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(path: string, options: TProstoRouteOptions | HandlerType, handler?: HandlerType) {
-        const { opts, func } = extractOptionsAndHandler<HandlerType>(options, handler)
+    public options<
+        ParamsType = TProstoParamsType,
+        HandlerType = BaseHandlerType,
+    >(
+        path: string,
+        options: TProstoRouteOptions | HandlerType,
+        handler?: HandlerType,
+    ) {
+        const { opts, func } = extractOptionsAndHandler<HandlerType>(
+            options,
+            handler,
+        )
         return this.on<ParamsType, HandlerType>('OPTIONS', path, opts, func)
     }
 
-    public head<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(path: string, options: TProstoRouteOptions | HandlerType, handler?: HandlerType) {
-        const { opts, func } = extractOptionsAndHandler<HandlerType>(options, handler)
+    public head<ParamsType = TProstoParamsType, HandlerType = BaseHandlerType>(
+        path: string,
+        options: TProstoRouteOptions | HandlerType,
+        handler?: HandlerType,
+    ) {
+        const { opts, func } = extractOptionsAndHandler<HandlerType>(
+            options,
+            handler,
+        )
         return this.on<ParamsType, HandlerType>('HEAD', path, opts, func)
     }
 
@@ -326,10 +559,29 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
 
     public toTree() {
         const rootStyle = (v: string) => __DYE_BOLD__ + v + __DYE_BOLD_OFF__
-        const paramStyle = (v: string) => __DYE_CYAN__ + __DYE_BOLD__ + ':' + v + __DYE_COLOR_OFF__ + __DYE_BOLD_OFF__
-        const regexStyle = (v: string) => __DYE_CYAN__ + __DYE_DIM__ + v + __DYE_DIM_OFF__ + __DYE_COLOR_OFF__
-        const handlerStyle = (v: string) => __DYE_BOLD__ + __DYE_GREEN_BRIGHT__ + '→ ' + __DYE_COLOR_OFF__ + __DYE_BOLD_OFF__ + v
-        const methodStyle = (v: string) => __DYE_DIM_OFF__ + __DYE_GREEN_BRIGHT__ + '• (' + v + ') ' + __DYE_COLOR_OFF__
+        const paramStyle = (v: string) =>
+            __DYE_CYAN__ +
+            __DYE_BOLD__ +
+            ':' +
+            v +
+            __DYE_COLOR_OFF__ +
+            __DYE_BOLD_OFF__
+        const regexStyle = (v: string) =>
+            __DYE_CYAN__ + __DYE_DIM__ + v + __DYE_DIM_OFF__ + __DYE_COLOR_OFF__
+        const handlerStyle = (v: string) =>
+            __DYE_BOLD__ +
+            __DYE_GREEN_BRIGHT__ +
+            '→ ' +
+            __DYE_COLOR_OFF__ +
+            __DYE_BOLD_OFF__ +
+            v
+        const methodStyle = (v: string) =>
+            __DYE_DIM_OFF__ +
+            __DYE_GREEN_BRIGHT__ +
+            '• (' +
+            v +
+            ') ' +
+            __DYE_COLOR_OFF__
         type TreeData = {
             label: string
             stylist?: (v: string) => string
@@ -343,8 +595,12 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             children: [],
         }
 
-        function toChild(d: TreeData, label: string, stylist?: (v: string) => string) {
-            let found = d.children.find(c => c.label === label)
+        function toChild(
+            d: TreeData,
+            label: string,
+            stylist?: (v: string) => string,
+        ) {
+            let found = d.children.find((c) => c.label === label)
             if (!found) {
                 found = {
                     label,
@@ -357,37 +613,48 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             return found
         }
 
-        this.routes.sort((a, b) => a.path > b.path ? 1 : -1).forEach(route => {
-            let cur: TreeData = data
-            let last = ''
-            route.segments.forEach(s => {
-                let parts
-                switch (s.type) {
-                    case EPathSegmentType.STATIC:
-                        parts = s.value.split('/')
-                        last += parts.shift()
-                        for (let i = 0; i < parts.length; i++) {
-                            if (last) {
-                                cur = toChild(cur, last)
+        this.routes
+            .sort((a, b) => (a.path > b.path ? 1 : -1))
+            .forEach((route) => {
+                let cur: TreeData = data
+                let last = ''
+                route.segments.forEach((s) => {
+                    let parts
+                    switch (s.type) {
+                        case EPathSegmentType.STATIC:
+                            parts = s.value.split('/')
+                            last += parts.shift()
+                            for (let i = 0; i < parts.length; i++) {
+                                if (last) {
+                                    cur = toChild(cur, last)
+                                }
+                                last = '/' + parts[i]
                             }
-                            last = '/' + parts[i]
-                        }
-                        break
-                    case EPathSegmentType.VARIABLE: 
-                    case EPathSegmentType.WILDCARD:
-                        last += `${ paramStyle(s.value) }${ regexStyle(s.regex) }`
+                            break
+                        case EPathSegmentType.VARIABLE:
+                        case EPathSegmentType.WILDCARD:
+                            last += `${paramStyle(s.value)}${regexStyle(s.regex)}`
+                    }
+                })
+                if (last) {
+                    cur = toChild(cur, last, handlerStyle)
+                    cur.methods.push(route.method)
                 }
             })
-            if (last) {
-                cur = toChild(cur, last, handlerStyle)
-                cur.methods.push(route.method)
-            }
-        })
         new ProstoTree<TreeData>({
             renderLabel: (node: TreeData, behind: string) => {
-                const styledLabel = node.stylist ? node.stylist(node.label) : node.label
+                const styledLabel = node.stylist
+                    ? node.stylist(node.label)
+                    : node.label
                 if (node.methods.length) {
-                    return styledLabel + '\n' + behind + node.methods.map(m => methodStyle(m)).join('\n' + behind)
+                    return (
+                        styledLabel +
+                        '\n' +
+                        behind +
+                        node.methods
+                            .map((m) => methodStyle(m))
+                            .join('\n' + behind)
+                    )
                 }
                 return styledLabel
             },
@@ -395,7 +662,10 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
     }
 }
 
-function extractOptionsAndHandler<HandlerType = TProstoRouteHandler>(options: TProstoRouteOptions | HandlerType, handler?: HandlerType | undefined) {
+function extractOptionsAndHandler<HandlerType = TProstoRouteHandler>(
+    options: TProstoRouteOptions | HandlerType,
+    handler?: HandlerType | undefined,
+) {
     let opts: TProstoRouteOptions = {}
     let func: HandlerType = handler as HandlerType
     if (typeof options === 'function') {
@@ -406,7 +676,28 @@ function extractOptionsAndHandler<HandlerType = TProstoRouteHandler>(options: TP
     return { opts, func }
 }
 
-function routeSorter(a: TProstoRoute<unknown>, b: TProstoRoute<unknown>): number {
+function insertSorted(
+    arr: TProstoRoute<unknown>[],
+    route: TProstoRoute<unknown>,
+    cmp: (a: TProstoRoute<unknown>, b: TProstoRoute<unknown>) => number,
+) {
+    let lo = 0
+    let hi = arr.length
+    while (lo < hi) {
+        const mid = (lo + hi) >>> 1
+        if (cmp(arr[mid], route) <= 0) {
+            lo = mid + 1
+        } else {
+            hi = mid
+        }
+    }
+    arr.splice(lo, 0, route)
+}
+
+function routeSorter(
+    a: TProstoRoute<unknown>,
+    b: TProstoRoute<unknown>,
+): number {
     if (a.isWildcard !== b.isWildcard) {
         return a.isWildcard ? 1 : -1
     }
@@ -429,7 +720,14 @@ function consoleWarn(v: string) {
 }
 
 function consoleInfo(v: string) {
-    console.info(__DYE_GREEN__ + __DYE_DIM__ + banner() + v + __DYE_COLOR_OFF__ + __DYE_DIM_OFF__)
+    console.info(
+        __DYE_GREEN__ +
+            __DYE_DIM__ +
+            banner() +
+            v +
+            __DYE_COLOR_OFF__ +
+            __DYE_DIM_OFF__,
+    )
 }
 
 export interface TProstoRouterPathHandle<ParamsType = TProstoParamsType> {
