@@ -50,12 +50,15 @@ export interface TProstoLookupResult<HandlerType = TProstoRouteHandler> {
 
 export interface TProstoParametricRoutes {
     byParts: Map<number, TProstoRoute<unknown, unknown>[]>
+    byPartsArray?: TProstoRoute<unknown, unknown>[][]
 }
 
 export interface TProstoRouterMethodIndex {
     statics: Record<string, TProstoRoute<unknown, unknown> | undefined>
     parametrics: TProstoParametricRoutes
     wildcards: TProstoRoute<unknown>[]
+    compiledBuckets?: (TProstoBucketMatchFunc | undefined)[]
+    compiledWildcards?: TProstoBucketMatchFunc
 }
 
 export type TProstoRouterMainIndex = {
@@ -84,3 +87,8 @@ export type TProstoRouteMatchFunc<ParamsType = TProstoParamsType> = (
     params: ParamsType,
     utils: Record<string, unknown>,
 ) => RegExpMatchArray | null
+
+export type TProstoBucketMatchFunc = (
+    path: string,
+    params: TProstoParamsType,
+) => TProstoRoute<unknown, unknown> | null

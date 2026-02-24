@@ -2,11 +2,12 @@ export * from './router.types'
 import { ProstoCache } from '@prostojs/cache'
 import { parsePath } from '../parser'
 import { EPathSegmentType, TParsedSegmentParametric } from '../parser/p-types'
-import { safeDecodeURI, safeDecodeURIComponent } from '../utils/decode'
+import { safeDecodeURI } from '../utils/decode'
 import { countOfSlashes } from '../utils/strings'
-import { generateFullMatchFunc, generatePathBuilder } from './match-utils'
+import { compileBucketMatcher, generateFullMatchFunc, generatePathBuilder } from './match-utils'
 import {
     THttpMethod,
+    TProstoBucketMatchFunc,
     TProstoRouteHandler,
     TProstoRouterMainIndex,
     TProstoRoute,
@@ -32,10 +33,6 @@ const methods: THttpMethod[] = [
     'OPTIONS',
 ]
 
-const matcherFuncUtils = {
-    safeDecodeURIComponent,
-}
-
 type TProstoRouterCache = Record<string, ProstoCache>
 
 export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
@@ -45,6 +42,12 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
 
     // pre-computed: true when sanitizePath can use the single-scan fast path
     protected readonly _fastSanitize: boolean
+
+    protected _compiled = false
+
+    // reusable instance fields – written by sanitizePath, read by _lookup
+    private _normalPath = ''
+    private _normalPathWithCase = ''
 
     constructor(_options?: Partial<TProstoRouterOptions>) {
         this._options = {
@@ -98,6 +101,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         handler: HandlerType,
     ): TProstoRouterPathHandle<ParamsType> {
         this.refreshCache(method)
+        this._compiled = false
         const opts = this.mergeOptions(options)
         const normalPath = ('/' + path)
             .replace(/^\/\//, '/')
@@ -252,6 +256,10 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                         route as TProstoRoute<unknown, unknown>,
                         routeSorter,
                     )
+                    if (!rootMethod.parametrics.byPartsArray) {
+                        rootMethod.parametrics.byPartsArray = []
+                    }
+                    rootMethod.parametrics.byPartsArray[countOfParts] = bucket
                 } else if (
                     route.isWildcard ||
                     route.isOptional ||
@@ -298,7 +306,44 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         }
     }
 
-    protected sanitizePath(path: string, ignoreTrailingSlash?: boolean) {
+    public compile(): void {
+        this._compileAll()
+        this._compiled = true
+    }
+
+    protected _compileAll(): void {
+        const ignoreCase = !!this._options.ignoreCase
+        for (const method of Object.keys(this.root) as THttpMethod[]) {
+            const rootMethod = this.root[method]
+            if (!rootMethod) continue
+
+            let maxSegCount = 0
+            for (const segCount of rootMethod.parametrics.byParts.keys()) {
+                if (segCount > maxSegCount) maxSegCount = segCount
+            }
+            const compiled: (TProstoBucketMatchFunc | undefined)[] = new Array(
+                maxSegCount + 1,
+            )
+            for (const [segCount, bucket] of rootMethod.parametrics.byParts) {
+                if (bucket.length > 0) {
+                    compiled[segCount] = compileBucketMatcher(
+                        bucket,
+                        ignoreCase,
+                    )
+                }
+            }
+            rootMethod.compiledBuckets = compiled
+
+            if (rootMethod.wildcards.length > 0) {
+                rootMethod.compiledWildcards = compileBucketMatcher(
+                    rootMethod.wildcards as TProstoRoute<unknown, unknown>[],
+                    ignoreCase,
+                )
+            }
+        }
+    }
+
+    protected sanitizePath(path: string, ignoreTrailingSlash?: boolean): void {
         const end = path.indexOf('?')
         let slicedPath = end >= 0 ? path.slice(0, end) : path
         if (!this._fastSanitize) {
@@ -319,13 +364,10 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                       slicedPath.replace(/%25/g, '%2525'), // <-- workaround to avoid double decoding
                   )
                 : slicedPath
-        const normalPathWithCase = this._options.ignoreCase
+        this._normalPath = normalPath
+        this._normalPathWithCase = this._options.ignoreCase
             ? normalPath.toLowerCase()
             : normalPath
-        return {
-            normalPath,
-            normalPathWithCase,
-        }
     }
 
     public lookup<HandlerType = BaseHandlerType>(
@@ -362,10 +404,14 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         path: string,
         ignoreTrailingSlash?: boolean,
     ): TProstoLookupResult<HandlerType> | void {
-        const { normalPath, normalPathWithCase } = this.sanitizePath(
-            path,
-            ignoreTrailingSlash,
-        )
+        if (!this._compiled) {
+            this._compileAll()
+            this._compiled = true
+        }
+
+        this.sanitizePath(path, ignoreTrailingSlash)
+        const normalPath = this._normalPath
+        const normalPathWithCase = this._normalPathWithCase
         const rootMethod = this.root[method]
         if (!rootMethod) return
 
@@ -380,51 +426,37 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             }
         }
 
-        const pathLength = normalPath.length
-
-        // compute slashCount only when needed (after static miss)
+        // count slashes only after static miss
         let slashCount = 0
         for (let i = 0; i < normalPath.length; i++) {
             if (normalPath.charCodeAt(i) === 47) slashCount++
         }
-        const pathSegmentsCount = slashCount + 1
 
-        // parametric lookup
-        const bySegments = rootMethod.parametrics.byParts.get(pathSegmentsCount)
-        if (bySegments) {
+        // parametric — compiled bucket regex
+        const compiledMatcher =
+            rootMethod.compiledBuckets?.[slashCount + 1]
+        if (compiledMatcher) {
             const params: TProstoParamsType = {} as TProstoParamsType
-            for (let i = 0; i < bySegments.length; i++) {
-                const route = bySegments[i] as TProstoRoute<HandlerType>
-                if (
-                    pathLength >= route.minLength &&
-                    (route.firstLength === 0 ||
-                        normalPathWithCase.startsWith(route.firstStatic))
-                ) {
-                    if (route.fullMatch(normalPath, params, matcherFuncUtils)) {
-                        return {
-                            route,
-                            ctx: { params },
-                        }
-                    }
+            const matchedRoute = compiledMatcher(normalPath, params)
+            if (matchedRoute) {
+                return {
+                    route: matchedRoute as TProstoRoute<HandlerType>,
+                    ctx: { params },
                 }
             }
         }
 
-        // wildcard / optional / slash-allowing-regex fallback
-        const { wildcards } = rootMethod
-        const params: TProstoParamsType = {} as TProstoParamsType
-        for (let i = 0; i < wildcards.length; i++) {
-            const route = wildcards[i] as TProstoRoute<HandlerType>
-            if (
-                pathLength >= route.minLength &&
-                (route.firstLength === 0 ||
-                    normalPathWithCase.startsWith(route.firstStatic))
-            ) {
-                if (route.fullMatch(normalPath, params, matcherFuncUtils)) {
-                    return {
-                        route,
-                        ctx: { params },
-                    }
+        // wildcards — compiled regex
+        if (rootMethod.compiledWildcards) {
+            const params: TProstoParamsType = {} as TProstoParamsType
+            const matchedRoute = rootMethod.compiledWildcards(
+                normalPath,
+                params,
+            )
+            if (matchedRoute) {
+                return {
+                    route: matchedRoute as TProstoRoute<HandlerType>,
+                    ctx: { params },
                 }
             }
         }
