@@ -86,7 +86,15 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         }
     }
 
-    protected root: TProstoRouterMainIndex = {}
+    protected root: TProstoRouterMainIndex = {
+        GET: undefined,
+        PUT: undefined,
+        POST: undefined,
+        PATCH: undefined,
+        DELETE: undefined,
+        HEAD: undefined,
+        OPTIONS: undefined,
+    }
 
     protected routes: TProstoRoute<unknown, unknown>[] = []
 
@@ -381,28 +389,28 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         path: string,
         ignoreTrailingSlash?: boolean,
     ): TProstoLookupResult<HandlerType> | void {
-        const methodCache = this.getMethodCache(method)
-        if (methodCache) {
-            const cacheKey =
-                ignoreTrailingSlash !== undefined
-                    ? path + '\0' + (ignoreTrailingSlash ? '1' : '0')
-                    : path
-            const cached = methodCache.get(
-                cacheKey,
-            ) as TProstoLookupResult<HandlerType>
-            if (cached) return cached
-
-            const result = this._lookup<HandlerType>(
-                method,
-                path,
-                ignoreTrailingSlash,
-            )
-            if (result) {
-                methodCache.set(cacheKey, result)
-            }
-            return result
+        if (!this.cache) {
+            return this._lookup<HandlerType>(method, path, ignoreTrailingSlash)
         }
-        return this._lookup<HandlerType>(method, path, ignoreTrailingSlash)
+        const methodCache = this.getMethodCache(method)!
+        const cacheKey =
+            ignoreTrailingSlash !== undefined
+                ? path + '\0' + (ignoreTrailingSlash ? '1' : '0')
+                : path
+        const cached = methodCache.get(
+            cacheKey,
+        ) as TProstoLookupResult<HandlerType>
+        if (cached) return cached
+
+        const result = this._lookup<HandlerType>(
+            method,
+            path,
+            ignoreTrailingSlash,
+        )
+        if (result) {
+            methodCache.set(cacheKey, result)
+        }
+        return result
     }
 
     private _lookup<HandlerType = BaseHandlerType>(
