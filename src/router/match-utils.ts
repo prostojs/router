@@ -177,10 +177,17 @@ export function compileBucketMatcher(
         groupOffset = delimiterGroupIndex + 1
     }
 
-    const masterRegex = new RegExp(
-        `^(?:${regexParts.join('|')})$`,
-        ignoreCase ? 'i' : '',
-    )
+    let masterRegex: RegExp
+    try {
+        masterRegex = new RegExp(
+            `^(?:${regexParts.join('|')})$`,
+            ignoreCase ? 'i' : '',
+        )
+    } catch {
+        // Master regex too large (e.g. too many capture groups) — fall back
+        // to matching each route's regex individually. Slower but always works.
+        return compileIndividualMatchers(routes, ignoreCase)
+    }
 
     // Build per-handler functions: delimiterIndex → (m, params) => route
     // Each handler extracts params from the match and returns the route
@@ -217,3 +224,68 @@ export function compileBucketMatcher(
         return handler ? handler(m, params) : null
     }
 }
+
+/**
+ * Fallback: each route gets its own pre-compiled regex + param extractor.
+ * Used when the master regex fails to compile (too many capture groups, etc).
+ */
+export function compileIndividualMatchers(
+    routes: TProstoRoute<unknown, unknown>[],
+    ignoreCase: boolean,
+): TProstoBucketMatchFunc {
+    const matchers: Array<{
+        regex: RegExp
+        route: TProstoRoute<unknown, unknown>
+        extract: (m: RegExpExecArray, params: TProstoParamsType) => void
+    }> = []
+
+    for (const route of routes) {
+        const routeRegex = generateFullMatchRegex(route.segments)
+        const regex = new RegExp(
+            `^${routeRegex}$`,
+            ignoreCase ? 'i' : '',
+        )
+
+        const byName: Record<string, number[]> = {}
+        let groupIdx = 0
+        for (const seg of route.segments) {
+            if (
+                seg.type === EPathSegmentType.VARIABLE ||
+                seg.type === EPathSegmentType.WILDCARD
+            ) {
+                const name = (seg as TParsedSegmentParametric).value
+                if (!byName[name]) byName[name] = []
+                groupIdx++
+                byName[name].push(groupIdx)
+            }
+        }
+
+        let hBody = ''
+        for (const name of Object.keys(byName)) {
+            const indices = byName[name]
+            if (indices.length === 1) {
+                hBody += `params['${name}'] = m[${indices[0]}]\n`
+            } else {
+                hBody += `params['${name}'] = [${indices.map((gi) => `m[${gi}]`).join(', ')}]\n`
+            }
+        }
+        const extractFn = new Function(
+            'm', 'params',
+            hBody,
+        ) as (m: RegExpExecArray, params: TProstoParamsType) => void
+
+        matchers.push({ regex, route, extract: extractFn })
+    }
+
+    return function (path: string, params: TProstoParamsType) {
+        for (let i = 0; i < matchers.length; i++) {
+            const m = matchers[i].regex.exec(path)
+            if (m) {
+                matchers[i].extract(m, params)
+                return matchers[i].route
+            }
+        }
+        return null
+    }
+}
+

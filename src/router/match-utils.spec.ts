@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
     EPathSegmentType,
     TParsedSegmentParametric,
     TParsedSegmentStatic,
 } from '../parser/p-types'
-import { generateFullMatchFunc, generateFullMatchRegex } from './match-utils'
+import { compileBucketMatcher, compileIndividualMatchers, generateFullMatchFunc, generateFullMatchRegex } from './match-utils'
+import { TProstoParamsType, TProstoRoute } from './router.types'
+import { parsePath } from '../parser'
 
 const s = (value: string): TParsedSegmentStatic => ({
     type: EPathSegmentType.STATIC,
@@ -171,5 +173,119 @@ describe('match-utils->generateFullMatchFunc', () => {
         expect(params.v2).toBeUndefined()
         expect(params['*']).toBeUndefined()
         expect(params.v3).toBeUndefined()
+    })
+})
+
+// Helper to build a minimal TProstoRoute from a path string
+function makeRoute(path: string): TProstoRoute<unknown, unknown> {
+    const segments = parsePath(path)
+    const lengths = segments.map((seg) =>
+        seg.type === EPathSegmentType.STATIC ? seg.value.length : 0,
+    )
+    return {
+        method: 'GET',
+        options: {},
+        path,
+        handlers: [],
+        isStatic: false,
+        isParametric: true,
+        isOptional: false,
+        isWildcard: false,
+        segments,
+        generalized: '',
+        lengths,
+        minLength: lengths.reduce((a, b) => a + b, 0),
+        firstLength: lengths[0],
+        firstStatic: segments[0]?.value ?? '',
+        fullMatch: () => null,
+        pathBuilder: () => '',
+    }
+}
+
+describe('compileBucketMatcher fallback to compileIndividualMatchers', () => {
+    const routes = [
+        makeRoute('/api/users/:userId'),
+        makeRoute('/api/projects/:projectId'),
+        makeRoute('/api/teams/:teamId'),
+    ]
+
+    it('compileIndividualMatchers matches and extracts params correctly', () => {
+        const matcher = compileIndividualMatchers(routes, false)
+
+        const params1: TProstoParamsType = {}
+        const result1 = matcher('/api/users/john', params1)
+        expect(result1).toBe(routes[0])
+        expect(params1.userId).toBe('john')
+
+        const params2: TProstoParamsType = {}
+        const result2 = matcher('/api/projects/proj42', params2)
+        expect(result2).toBe(routes[1])
+        expect(params2.projectId).toBe('proj42')
+
+        const params3: TProstoParamsType = {}
+        const result3 = matcher('/api/teams/alpha', params3)
+        expect(result3).toBe(routes[2])
+        expect(params3.teamId).toBe('alpha')
+
+        const params4: TProstoParamsType = {}
+        const result4 = matcher('/api/unknown/123', params4)
+        expect(result4).toBeNull()
+    })
+
+    it('compileIndividualMatchers produces same results as compileBucketMatcher', () => {
+        const masterMatcher = compileBucketMatcher(routes, false)
+        const fallbackMatcher = compileIndividualMatchers(routes, false)
+
+        const testPaths = [
+            '/api/users/john',
+            '/api/projects/proj42',
+            '/api/teams/alpha',
+            '/api/unknown/123',
+            '/completely/different',
+        ]
+
+        for (const path of testPaths) {
+            const masterParams: TProstoParamsType = {}
+            const fallbackParams: TProstoParamsType = {}
+            const masterResult = masterMatcher(path, masterParams)
+            const fallbackResult = fallbackMatcher(path, fallbackParams)
+            expect(fallbackResult).toBe(masterResult)
+            if (masterResult) {
+                expect(fallbackParams).toEqual(masterParams)
+            }
+        }
+    })
+
+    it('compileBucketMatcher falls back when RegExp constructor throws', () => {
+        const OrigRegExp = globalThis.RegExp
+        const spy = vi.spyOn(globalThis, 'RegExp').mockImplementation(
+            function (this: RegExp, pattern: string | RegExp, flags?: string) {
+                const str = String(pattern)
+                // Let individual route regexes through, block only the master alternation
+                if (str.startsWith('^(?:') && str.includes('|')) {
+                    throw new Error('simulated: regex too large')
+                }
+                return new OrigRegExp(pattern, flags!)
+            } as unknown as typeof RegExp,
+        )
+
+        try {
+            const matcher = compileBucketMatcher(routes, false)
+
+            const params: TProstoParamsType = {}
+            const result = matcher('/api/users/jane', params)
+            expect(result).toBe(routes[0])
+            expect(params.userId).toBe('jane')
+
+            const params2: TProstoParamsType = {}
+            const result2 = matcher('/api/projects/xyz', params2)
+            expect(result2).toBe(routes[1])
+            expect(params2.projectId).toBe('xyz')
+
+            const params3: TProstoParamsType = {}
+            expect(matcher('/no/match', params3)).toBeNull()
+        } finally {
+            spy.mockRestore()
+        }
     })
 })

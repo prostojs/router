@@ -444,11 +444,11 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         const needsDecode = this._hasEncoding
 
         // parametric — compiled bucket regex
-        const compiledMatcher =
+        const bucketMatcher =
             rootMethod.compiledBuckets?.[slashCount + 1]
-        if (compiledMatcher) {
+        if (bucketMatcher) {
             const params: TProstoParamsType = {} as TProstoParamsType
-            const matchedRoute = compiledMatcher(normalPath, params)
+            const matchedRoute = bucketMatcher(normalPath, params)
             if (matchedRoute) {
                 if (needsDecode) decodeParams(params)
                 return {
