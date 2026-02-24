@@ -53,8 +53,13 @@ export interface TProstoParametricRoutes {
     byPartsArray?: TProstoRoute<unknown, unknown>[][]
 }
 
+export interface TProstoStaticEntry {
+    route: TProstoRoute<unknown, unknown>
+    result: TProstoLookupResult<unknown>
+}
+
 export interface TProstoRouterMethodIndex {
-    statics: Record<string, TProstoRoute<unknown, unknown> | undefined>
+    statics: Record<string, TProstoStaticEntry | undefined>
     parametrics: TProstoParametricRoutes
     wildcards: TProstoRoute<unknown>[]
     compiledBuckets?: (TProstoBucketMatchFunc | undefined)[]

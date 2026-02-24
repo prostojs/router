@@ -1,7 +1,6 @@
 import { TProstoParamsType, TProstoRouterPathBuilder } from '..'
 import CodeString from '../code'
 import { EPathSegmentType, TParsedSegment, TParsedSegmentParametric } from '../parser/p-types'
-import { safeDecodeURIComponent } from '../utils/decode'
 import { escapeRegex } from '../utils/regex'
 import { TProstoBucketMatchFunc, TProstoRoute, TProstoRouteMatchFunc } from './router.types'
 
@@ -183,40 +182,38 @@ export function compileBucketMatcher(
         ignoreCase ? 'i' : '',
     )
 
-    // Generate function body — references `regex`, `routes`, `decode` from closure
-    let body = ''
-    body += 'const m = regex.exec(path)\n'
-    body += 'if (!m) return null\n'
+    // Build per-handler functions: delimiterIndex → (m, params) => route
+    // Each handler extracts params from the match and returns the route
+    const maxDelimiter = routeEntries[routeEntries.length - 1].delimiterGroupIndex
+    const handlers: (((m: RegExpExecArray, params: TProstoParamsType) => TProstoRoute<unknown, unknown>) | undefined)[] =
+        new Array(maxDelimiter + 1)
 
     for (const entry of routeEntries) {
-        body += `if (m[${entry.delimiterGroupIndex}] !== undefined) {\n`
+        let hBody = ''
         for (const mapping of entry.paramMappings) {
             if (mapping.groupIndices.length === 1) {
-                body += `\tparams['${mapping.name}'] = decode(m[${mapping.groupIndices[0]}])\n`
+                hBody += `params['${mapping.name}'] = m[${mapping.groupIndices[0]}]\n`
             } else {
                 const parts = mapping.groupIndices
-                    .map((gi) => `decode(m[${gi}])`)
+                    .map((gi) => `m[${gi}]`)
                     .join(', ')
-                body += `\tparams['${mapping.name}'] = [${parts}]\n`
+                hBody += `params['${mapping.name}'] = [${parts}]\n`
             }
         }
-        body += `\treturn routes[${entry.routeIndex}]\n`
-        body += '}\n'
+        hBody += `return route\n`
+        const hFactory = new Function(
+            'route',
+            `return function(m, params) {\n${hBody}}`,
+        ) as (route: TProstoRoute<unknown, unknown>) => (m: RegExpExecArray, params: TProstoParamsType) => TProstoRoute<unknown, unknown>
+        handlers[entry.delimiterGroupIndex] = hFactory(routes[entry.routeIndex])
     }
 
-    body += 'return null\n'
-
-    // Factory captures `regex`, `routes`, `decode` in closure — no .bind()
-    const factory = new Function(
-        'regex',
-        'routes',
-        'decode',
-        `return function(path, params) {\n${body}}`,
-    ) as (
-        regex: RegExp,
-        routes: TProstoRoute<unknown, unknown>[],
-        decode: typeof safeDecodeURIComponent,
-    ) => TProstoBucketMatchFunc
-
-    return factory(masterRegex, routes, safeDecodeURIComponent)
+    // Main matcher: single indexOf("", 1) to find which route matched
+    return function (path: string, params: TProstoParamsType) {
+        const m = masterRegex.exec(path)
+        if (!m) return null
+        const idx = m.indexOf('', 1)
+        const handler = handlers[idx]
+        return handler ? handler(m, params) : null
+    }
 }

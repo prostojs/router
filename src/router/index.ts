@@ -2,7 +2,7 @@ export * from './router.types'
 import { ProstoCache } from '@prostojs/cache'
 import { parsePath } from '../parser'
 import { EPathSegmentType, TParsedSegmentParametric } from '../parser/p-types'
-import { safeDecodeURI } from '../utils/decode'
+import { safeDecodeURI, safeDecodeURIComponent } from '../utils/decode'
 import { countOfSlashes } from '../utils/strings'
 import { compileBucketMatcher, generateFullMatchFunc, generatePathBuilder } from './match-utils'
 import {
@@ -48,6 +48,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
     // reusable instance fields – written by sanitizePath, read by _lookup
     private _normalPath = ''
     private _normalPathWithCase = ''
+    private _hasEncoding = false
 
     constructor(_options?: Partial<TProstoRouterOptions>) {
         this._options = {
@@ -228,11 +229,15 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             }
             this.routes.push(route as TProstoRoute<unknown, unknown>)
             if (route.isStatic) {
-                // static is straight forward
-                rootMethod.statics[normalPathCase] = route as TProstoRoute<
-                    unknown,
-                    unknown
-                >
+                // static: store route + pre-built lookup result (zero alloc at lookup time)
+                const routeRef = route as TProstoRoute<unknown, unknown>
+                rootMethod.statics[normalPathCase] = {
+                    route: routeRef,
+                    result: {
+                        route: routeRef,
+                        ctx: { params: {} },
+                    },
+                }
             } else {
                 // dynamic
                 if (
@@ -358,13 +363,14 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             }
         }
         // skip safeDecodeURI call entirely when no % — avoids redundant indexOf inside it
-        const normalPath =
-            slicedPath.indexOf('%') >= 0
-                ? safeDecodeURI(
-                      slicedPath.replace(/%25/g, '%2525'), // <-- workaround to avoid double decoding
-                  )
-                : slicedPath
+        const hasEncoding = slicedPath.indexOf('%') >= 0
+        const normalPath = hasEncoding
+            ? safeDecodeURI(
+                  slicedPath.replace(/%25/g, '%2525'), // <-- workaround to avoid double decoding
+              )
+            : slicedPath
         this._normalPath = normalPath
+        this._hasEncoding = hasEncoding
         this._normalPathWithCase = this._options.ignoreCase
             ? normalPath.toLowerCase()
             : normalPath
@@ -415,15 +421,10 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         const rootMethod = this.root[method]
         if (!rootMethod) return
 
-        // static lookup
-        const staticRoute = rootMethod.statics[
-            normalPathWithCase
-        ] as TProstoRoute<HandlerType>
-        if (staticRoute) {
-            return {
-                route: staticRoute,
-                ctx: { params: {} },
-            }
+        // static lookup — returns pre-built result (zero allocations)
+        const staticEntry = rootMethod.statics[normalPathWithCase]
+        if (staticEntry) {
+            return staticEntry.result as TProstoLookupResult<HandlerType>
         }
 
         // count slashes only after static miss
@@ -432,6 +433,8 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             if (normalPath.charCodeAt(i) === 47) slashCount++
         }
 
+        const needsDecode = this._hasEncoding
+
         // parametric — compiled bucket regex
         const compiledMatcher =
             rootMethod.compiledBuckets?.[slashCount + 1]
@@ -439,6 +442,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             const params: TProstoParamsType = {} as TProstoParamsType
             const matchedRoute = compiledMatcher(normalPath, params)
             if (matchedRoute) {
+                if (needsDecode) decodeParams(params)
                 return {
                     route: matchedRoute as TProstoRoute<HandlerType>,
                     ctx: { params },
@@ -454,6 +458,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 params,
             )
             if (matchedRoute) {
+                if (needsDecode) decodeParams(params)
                 return {
                     route: matchedRoute as TProstoRoute<HandlerType>,
                     ctx: { params },
@@ -705,6 +710,19 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 return styledLabel
             },
         }).print(data)
+    }
+}
+
+function decodeParams(params: TProstoParamsType): void {
+    for (const key in params) {
+        const val = params[key]
+        if (typeof val === 'string') {
+            params[key] = safeDecodeURIComponent(val) as string
+        } else if (Array.isArray(val)) {
+            for (let i = 0; i < val.length; i++) {
+                val[i] = safeDecodeURIComponent(val[i]) as string
+            }
+        }
     }
 }
 
