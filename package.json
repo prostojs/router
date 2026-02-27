@@ -73,5 +73,10 @@
     },
     "gitHooks": {
         "commit-msg": "node scripts/verifyCommit.js"
+    },
+    "pnpm": {
+        "overrides": {
+            "cross-spawn": ">=7.0.6"
+        }
     }
 }

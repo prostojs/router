@@ -7,11 +7,38 @@
 
 # Fast and Robust URI-router for NodeJS. [![build status](https://github.com/prostojs/router/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/prostojs/router/actions/workflows/ci.yml)
 
-This is framework agnostic router that is [extremely fast](https://github.com/prostojs/router-benchmark). It's as fast as `find-my-way` and even faster. It's written completely on TypeScript.
+This is framework agnostic router that is [extremely fast](https://github.com/prostojs/router-benchmark/tree/main/packages/router-benchmark). It's as fast as `find-my-way` and even faster. It's written completely on TypeScript.
 
 The aim of the router is to properly parse URI and find the handler in the shortest possible time. It doesn't have any problems with url-encoded tricky URIs. It will deliver all the params in the context. It parses params and wildcards in proper manner. It allows to use complex wildcards and parameters with regex. It does not call handlers but returns handlers. You must specify the type of handler functions yourself for your use case.
 
-If you want to see a benchmark comparison with the most commonly used routers, see [here](https://github.com/prostojs/router-benchmark).<br>
+### Benchmark Comparison
+
+Benchmarked against popular routers with **full route matching AND parameter extraction** per lookup.
+See the full benchmark [here](https://github.com/prostojs/router-benchmark/tree/main/packages/router-benchmark).
+
+#### Basic benchmark (22 routes, 200k ops, 2 attempts)
+
+| Route Type | Express | find-my-way | rou3 | Hono RegExpRouter | **@prostojs/router** |
+|------------|---------|-------------|------|-------------------|----------------------|
+| Short (2-5 segments) | 2,348 | 22,374 | 32,242 | **37,863** | 36,385 |
+| Long (5-10 segments) | 1,141 | 6,283 | 7,157 | 8,250 | **9,020** |
+| Mixed (50/50) | 2,201 | 16,786 | 20,828 | **37,617** | 21,432 |
+
+*ops/ms — higher is better*
+
+#### Scaling benchmark (500k ops, 5 attempts)
+
+| Router | 22 routes | 50 routes | 100 routes | 200 routes |
+|--------|-----------|-----------|------------|------------|
+| **@prostojs/router** | 44,665 | 14,411 | 10,855 | 9,400 |
+| Hono RegExpRouter | 42,409 | 12,525 | 10,162 | 6,627 |
+| rou3 | 38,861 | 17,533 | 12,495 | 10,481 |
+| find-my-way | 29,182 | 13,038 | 13,571 | 10,804 |
+| Express | 2,393 | 994 | 654 | 295 |
+
+*ops/ms on short routes — higher is better*
+
+> **Note:** Hono's RegExpRouter fails to compile beyond ~50 deep routes, falling back to the slower TrieRouter (~3,600 ops/ms). ProstoRouter maintains strong performance across all route counts.
 
 - [Quick Start](./README.md#quick-start)
 - [Install](./README.md#install)
