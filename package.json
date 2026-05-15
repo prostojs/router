@@ -49,7 +49,7 @@
         "@prostojs/tree": "^0.2.2"
     },
     "devDependencies": {
-        "@prostojs/dye": "^0.4.9",
+        "@prostojs/dye": "^0.5.0",
         "@types/node": "^22.0.0",
         "conventional-changelog-cli": "^2.2.2",
         "enquirer": "^2.4.1",

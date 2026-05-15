@@ -21,7 +21,7 @@
         "removeComments": true,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
-        "types": ["node"]
+        "types": ["node", "@prostojs/dye/global"]
     },
     "include": ["src/**/*", "**/*.spec.ts", "**/*.types.ts"],
     "exclude": ["node_modules", "explorations", "scripts"]

@@ -1,25 +1,6 @@
 import { defineConfig } from 'rolldown'
 import { dts } from 'rolldown-plugin-dts'
-import { dye } from '@prostojs/dye'
-
-const dyeModifiers = [
-    'dim',
-    'bold',
-    'underscore',
-    'inverse',
-    'italic',
-    'crossed',
-]
-const dyeColors = [
-    'red',
-    'green',
-    'cyan',
-    'blue',
-    'yellow',
-    'white',
-    'magenta',
-    'black',
-]
+import dye from '@prostojs/dye/rolldown'
 
 const external = [
     '@prostojs/cache',
@@ -29,8 +10,6 @@ const external = [
     'url',
     'stream',
 ]
-
-const dyeDefines = createDyeReplaceConst()
 
 function createConfig(type) {
     const formats = {
@@ -45,9 +24,9 @@ function createConfig(type) {
             format: formats[type],
             sourcemap: false,
         },
+        plugins: [dye()],
         define: {
             'process.env.NODE_ENV': JSON.stringify('production'),
-            ...dyeDefines,
         },
     })
 }
@@ -70,28 +49,3 @@ function createDtsConfig() {
 }
 
 export default [createConfig('mjs'), createConfig('cjs'), createDtsConfig()]
-
-function createDyeReplaceConst() {
-    const c = dye('red')
-    const bg = dye('bg-red')
-    const dyeReplacements = {
-        __DYE_RESET__: "'" + dye.reset + "'",
-        __DYE_COLOR_OFF__: "'" + c.close + "'",
-        __DYE_BG_OFF__: "'" + bg.close + "'",
-    }
-    dyeModifiers.forEach((v) => {
-        dyeReplacements[`__DYE_${v.toUpperCase()}__`] = "'" + dye(v).open + "'"
-        dyeReplacements[`__DYE_${v.toUpperCase()}_OFF__`] =
-            "'" + dye(v).close + "'"
-    })
-    dyeColors.forEach((v) => {
-        dyeReplacements[`__DYE_${v.toUpperCase()}__`] = "'" + dye(v).open + "'"
-        dyeReplacements[`__DYE_BG_${v.toUpperCase()}__`] =
-            "'" + dye('bg-' + v).open + "'"
-        dyeReplacements[`__DYE_${v.toUpperCase()}_BRIGHT__`] =
-            "'" + dye(v + '-bright').open + "'"
-        dyeReplacements[`__DYE_BG_${v.toUpperCase()}_BRIGHT__`] =
-            "'" + dye('bg-' + v + '-bright').open + "'"
-    })
-    return dyeReplacements
-}
