@@ -1,3 +1,12 @@
+## [0.3.4](https://github.com/prostojs/router/compare/v0.3.3...v0.3.4) (2026-05-15)
+
+
+### Bug Fixes
+
+* dye consts leak fixed ([6d6d96b](https://github.com/prostojs/router/commit/6d6d96b60d8b07ab153ef16cf66741646f7bd748))
+
+
+
 ## [0.3.3](https://github.com/prostojs/router/compare/v0.3.2...v0.3.3) (2026-02-27)
 
 
