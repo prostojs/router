@@ -4,7 +4,12 @@ import { parsePath } from '../parser'
 import { EPathSegmentType, TParsedSegmentParametric } from '../parser/p-types'
 import { safeDecodeURI, safeDecodeURIComponent } from '../utils/decode'
 import { countOfSlashes } from '../utils/strings'
-import { compileBucketMatcher, generateFullMatchFunc, generatePathBuilder } from './match-utils'
+import {
+    compileBucketMatcher,
+    compileSubBucketedMatcher,
+    generateFullMatchFunc,
+    generatePathBuilder,
+} from './match-utils'
 import {
     THttpMethod,
     TProstoBucketMatchFunc,
@@ -237,14 +242,8 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             }
             this.routes.push(route as TProstoRoute<unknown, unknown>)
             if (route.isStatic) {
-                // static: store route + pre-built lookup result (zero alloc at lookup time)
-                const routeRef = route as TProstoRoute<unknown, unknown>
                 rootMethod.statics[normalPathCase] = {
-                    route: routeRef,
-                    result: {
-                        route: routeRef,
-                        ctx: { params: {} },
-                    },
+                    route: route as TProstoRoute<unknown, unknown>,
                 }
             } else {
                 // dynamic
@@ -339,7 +338,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             )
             for (const [segCount, bucket] of rootMethod.parametrics.byParts) {
                 if (bucket.length > 0) {
-                    compiled[segCount] = compileBucketMatcher(
+                    compiled[segCount] = compileSubBucketedMatcher(
                         bucket,
                         ignoreCase,
                     )
@@ -359,7 +358,8 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
     protected sanitizePath(path: string, ignoreTrailingSlash?: boolean): void {
         const end = path.indexOf('?')
         let slicedPath = end >= 0 ? path.slice(0, end) : path
-        if (!this._fastSanitize) {
+        // the per-call flag must be honoured even on the fast path
+        if (!this._fastSanitize || ignoreTrailingSlash) {
             const shouldIgnoreTrailingSlash =
                 ignoreTrailingSlash || this._options.ignoreTrailingSlash
             if (
@@ -400,7 +400,9 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         const cached = methodCache.get(
             cacheKey,
         ) as TProstoLookupResult<HandlerType>
-        if (cached) return cached
+        // cached results are never handed out directly: every lookup gets its
+        // own params so a caller mutating them cannot leak into other requests
+        if (cached) return cloneResult(cached)
 
         const result = this._lookup<HandlerType>(
             method,
@@ -408,7 +410,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             ignoreTrailingSlash,
         )
         if (result) {
-            methodCache.set(cacheKey, result)
+            methodCache.set(cacheKey, cloneResult(result))
         }
         return result
     }
@@ -429,10 +431,14 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         const rootMethod = this.root[method]
         if (!rootMethod) return
 
-        // static lookup — returns pre-built result (zero allocations)
+        // static lookup — fresh params per lookup: mutations must not leak
+        // across requests
         const staticEntry = rootMethod.statics[normalPathWithCase]
         if (staticEntry) {
-            return staticEntry.result as TProstoLookupResult<HandlerType>
+            return {
+                route: staticEntry.route as TProstoRoute<HandlerType>,
+                ctx: { params: {} },
+            }
         }
 
         // count slashes only after static miss
@@ -719,6 +725,18 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
             },
         }).print(data)
     }
+}
+
+function cloneResult<HandlerType>(
+    result: TProstoLookupResult<HandlerType>,
+): TProstoLookupResult<HandlerType> {
+    const src = result.ctx.params
+    const params: TProstoParamsType = {}
+    for (const key in src) {
+        const val = src[key]
+        params[key] = Array.isArray(val) ? val.slice() : val
+    }
+    return { route: result.route, ctx: { params } }
 }
 
 function decodeParams(params: TProstoParamsType): void {

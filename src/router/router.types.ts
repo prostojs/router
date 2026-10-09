@@ -55,7 +55,6 @@ export interface TProstoParametricRoutes {
 
 export interface TProstoStaticEntry {
     route: TProstoRoute<unknown, unknown>
-    result: TProstoLookupResult<unknown>
 }
 
 export interface TProstoRouterMethodIndex {
