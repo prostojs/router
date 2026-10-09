@@ -1,3 +1,12 @@
+## [0.3.5](https://github.com/prostojs/router/compare/v0.3.4...v0.3.5) (2026-10-09)
+
+
+### Performance Improvements
+
+* sub-bucket parametric routes; fix: fresh params per lookup, per-call trailing slash ([ce1b8fe](https://github.com/prostojs/router/commit/ce1b8fe7fb3fcc7defb351f80cbb392447e3d1b7))
+
+
+
 ## [0.3.4](https://github.com/prostojs/router/compare/v0.3.3...v0.3.4) (2026-05-15)
 
 
