@@ -12,14 +12,14 @@ importers:
   .:
     dependencies:
       '@prostojs/cache':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.1.9
+        version: 0.1.9
       '@prostojs/parser':
-        specifier: ^0.5.11
-        version: 0.5.11
+        specifier: ^0.6.0
+        version: 0.6.0
       '@prostojs/tree':
-        specifier: ^0.2.2
-        version: 0.2.2
+        specifier: ^0.3.0
+        version: 0.3.0
     devDependencies:
       '@prostojs/dye':
         specifier: ^0.5.0
@@ -533,17 +533,14 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@prostojs/cache@0.0.1':
-    resolution: {integrity: sha512-DQH+nAFBGGCYq11x2Cc9xYjiIsNCR+pVgzC5Y409opTQBPXqyGg7v7kVJcgwfYBJBwXvem6wen13Ae71teNXhA==}
+  '@prostojs/cache@0.1.9':
+    resolution: {integrity: sha512-He1+hi/9WdDaE23zgod8K2CMNoYX8/ZgPNV4E8qFwiYMB858sBLzBrcr7Xe4y/WPM/9I452+PYFIglVZ4ACvpA==}
 
   '@prostojs/dye@0.5.0':
     resolution: {integrity: sha512-pzFi3/sPBPJMGgMnMJm/AYTDpa5YMsGUDfXwsKb7PLBC0Qs6W5fNWRwEfxIXlEA5K/F+LcDGGoEUljpyawksgQ==}
 
-  '@prostojs/parser@0.5.11':
-    resolution: {integrity: sha512-apV1PUbnu7EAsn0/QGE5unyNmqe+o3tCcsa3lYOsplXV55u43ax3vQ/4jxVUOrcF13vKkYkhR4jl6111kHHxpA==}
-
-  '@prostojs/tree@0.2.2':
-    resolution: {integrity: sha512-N4NHd5Nwy4nFsvmZhSgWhYCKuDuvtFpZPZOI2TKhWj44N8trlpU9MgruBlYKhwrc0RTDKhxp13JaDQ6bR4RLMA==}
+  '@prostojs/parser@0.6.0':
+    resolution: {integrity: sha512-/sm+StB0O/HKNRWKGVQPtEy1bLIC8EgQekxMkK9lHPKmS7iQITfb/AqPTOSO70GNV5b1CNpiOJNZqc7pyGl6PA==}
 
   '@prostojs/tree@0.3.0':
     resolution: {integrity: sha512-9Ki9sg7UJvAy3IRXZuTBoVaepiYD+Ok3ucozNiMVWyjKmXjkgmqYUZGzDYAjTygS0s6Ze19X9ECM/0uQVfvHsw==}
@@ -2373,15 +2370,11 @@ snapshots:
   '@oxlint/binding-win32-x64-msvc@1.50.0':
     optional: true
 
-  '@prostojs/cache@0.0.1': {}
+  '@prostojs/cache@0.1.9': {}
 
   '@prostojs/dye@0.5.0': {}
 
-  '@prostojs/parser@0.5.11':
-    dependencies:
-      '@prostojs/tree': 0.3.0
-
-  '@prostojs/tree@0.2.2': {}
+  '@prostojs/parser@0.6.0': {}
 
   '@prostojs/tree@0.3.0': {}
 

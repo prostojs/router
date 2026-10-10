@@ -450,8 +450,7 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
         const needsDecode = this._hasEncoding
 
         // parametric — compiled bucket regex
-        const bucketMatcher =
-            rootMethod.compiledBuckets?.[slashCount + 1]
+        const bucketMatcher = rootMethod.compiledBuckets?.[slashCount + 1]
         if (bucketMatcher) {
             const params: TProstoParamsType = {} as TProstoParamsType
             const matchedRoute = bucketMatcher(normalPath, params)
@@ -707,21 +706,13 @@ export class ProstoRouter<BaseHandlerType = TProstoRouteHandler> {
                 }
             })
         new ProstoTree<TreeData>({
-            renderLabel: (node: TreeData, behind: string) => {
+            // blank node glyph: method lines align one column past it
+            chars: { node: ' ' },
+            renderLabel: (node: TreeData) => {
                 const styledLabel = node.stylist
                     ? node.stylist(node.label)
                     : node.label
-                if (node.methods.length) {
-                    return (
-                        styledLabel +
-                        '\n' +
-                        behind +
-                        node.methods
-                            .map((m) => methodStyle(m))
-                            .join('\n' + behind)
-                    )
-                }
-                return styledLabel
+                return [styledLabel, ...node.methods.map(methodStyle)]
             },
         }).print(data)
     }

@@ -103,6 +103,12 @@ describe('path-parser', () => {
         }).toThrowError()
     })
 
+    it('must name the route path in a parse error', () => {
+        expect(() => parsePath('/static/:key(blabla')).toThrowError(
+            'Invalid route path "/static/:key(blabla": Unclosed node "RegEx"',
+        )
+    })
+
     it('must escape regex groups and skip escaped braces', () => {
         const segments = parsePath('/static/:key(bl(a\\(in(?:.+)ner\\)b)la)')
         expect((segments[1] as TParsedSegmentParametric).regex).toEqual(
@@ -142,5 +148,57 @@ describe('path-parser', () => {
         expect((segments[7] as TParsedSegmentParametric).name).toEqual('*')
         expect((segments[7] as TParsedSegmentParametric).type).toEqual(3)
         expect((segments[7] as TParsedSegmentParametric).optional).toEqual(true)
+    })
+
+    it('must close a param right after its regex group', () => {
+        expect(parsePath('/:a(x)(y)')).toEqual([
+            { type: 0, value: '/' },
+            { type: 1, value: 'a', regex: '(x)', name: 'a' },
+            { type: 0, value: '(y)' },
+        ])
+        expect(parsePath('/*(x)*')).toEqual([
+            { type: 0, value: '/' },
+            { type: 3, value: '*', regex: '(x)', name: '*' },
+            { type: 3, value: '*', regex: '(.*)', name: '*' },
+        ])
+    })
+
+    it('must consume a single optional marker after a regex group', () => {
+        expect(parsePath('/:a(x)?y')).toEqual([
+            { type: 0, value: '/' },
+            { type: 1, value: 'a', regex: '(x)', name: 'a', optional: true },
+            { type: 0, value: 'y' },
+        ])
+        expect(parsePath('/*??')).toEqual([
+            { type: 0, value: '/' },
+            { type: 3, value: '*', regex: '(.*)', name: '*', optional: true },
+            { type: 0, value: '?' },
+        ])
+        // name already marked optional: the marker after the group stays static
+        expect(parsePath('/:a?(x)?')).toEqual([
+            { type: 0, value: '/' },
+            { type: 1, value: 'a', regex: '(x)', name: 'a', optional: true },
+            { type: 0, value: '?' },
+        ])
+    })
+
+    it('must treat an even number of backslashes as not escaping', () => {
+        expect(
+            (parsePath('/:a(\\\\)')[1] as TParsedSegmentParametric).regex,
+        ).toEqual('(\\\\)')
+        expect(() => parsePath('/:a(x\\\\\\)')).toThrowError()
+    })
+
+    it('must make nested groups non-capturing', () => {
+        expect(
+            (parsePath('/:a((b)(?:c))')[1] as TParsedSegmentParametric).regex,
+        ).toEqual('((?:b)(?:c))')
+    })
+
+    it('must leave value undefined for a nameless param', () => {
+        const [, seg] = parsePath('/:(x)') as TParsedSegmentParametric[]
+        expect(seg.name).toEqual('')
+        expect(seg.value).toBeUndefined()
+        expect(seg.regex).toEqual('(x)')
     })
 })

@@ -44,9 +44,9 @@
         "version": "conventional-changelog -p angular -i CHANGELOG.md -s && git add CHANGELOG.md"
     },
     "dependencies": {
-        "@prostojs/cache": "^0.0.1",
-        "@prostojs/parser": "^0.5.11",
-        "@prostojs/tree": "^0.2.2"
+        "@prostojs/cache": "^0.1.9",
+        "@prostojs/parser": "^0.6.0",
+        "@prostojs/tree": "^0.3.0"
     },
     "devDependencies": {
         "@prostojs/dye": "^0.5.0",
